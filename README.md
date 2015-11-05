@@ -1,6 +1,8 @@
 # sklearn-deap
 Use evolutionary algorithms instead of gridsearch in scikit-learn. This allows you to exponentially reduce the time required to find the best parameters for your estimator. Instead of trying out every possible combination of parameters, evolve only the combinations that give the best results.
 
+[Here](https://github.com/rsteca/sklearn-deap/blob/master/notebooks/test.ipynb) is an ipython notebook comparing EvolutionaryAlgorithmSearchCV against GridSearchCV and RandomizedSearchCV.
+
 It's implemented using deap library: https://github.com/deap/deap
 
 Install
