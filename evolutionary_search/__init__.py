@@ -9,16 +9,23 @@ from multiprocessing import Pool
 from sklearn import cross_validation
 from sklearn.base import clone
 from sklearn.grid_search import ParameterGrid, _check_param_grid, BaseSearchCV
-import copy_reg
+
+try:
+    import copy_reg as copyreg
+except ImportError:
+    import copyreg
+
 import numpy as np
 import random
 import types
+
 
 def _reduce_method(m):
     if m.im_self is None:
         return getattr, (m.im_class, m.im_func.func_name)
     else:
         return getattr, (m.im_self, m.im_func.func_name)
+
 
 class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
@@ -72,9 +79,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox = base.Toolbox()
         toolbox.register("attr_bool", random.randint, 0, 1)
         toolbox.register("individual", tools.initRepeat, creator.Individual,
-                      toolbox.attr_bool, n=self.individual_size)
+                         toolbox.attr_bool, n=self.individual_size)
         toolbox.register("population", tools.initRepeat, list,
-                      toolbox.individual)
+                         toolbox.individual)
 
         toolbox.register("evaluate", self._evalFunction)
         toolbox.register("mate", tools.cxTwoPoint)
@@ -82,7 +89,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
 
         if self.n_jobs > 1:
-            copy_reg.pickle(types.MethodType, _reduce_method)
+            copyreg.pickle(types.MethodType, _reduce_method)
             pool = Pool(processes=self.n_jobs)
             # self.toolbox.register("map", parmap)
             toolbox.register("map", pool.map)
@@ -107,7 +114,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             import json
             print("Best individual is: %s\nwith fitness: %s" % (
                   json.dumps(self.best_params_), hof[0].fitness)
-            )
+                  )
 
         if self.refit:
             self.best_estimator_ = clone(self.estimator)
