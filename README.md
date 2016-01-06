@@ -8,7 +8,12 @@ It's implemented using deap library: https://github.com/deap/deap
 Install
 -------
 
-To install the library just type the following on your shell:
+To install the library use pip:
+
+    pip install sklearn-deap
+
+
+or clone the repo and just type the following on your shell:
 
     python setup.py install
 
@@ -56,7 +61,7 @@ Output:
 
         Types [1, 2, 2] and maxint [0, 24, 24] detected
         --- Evolve in 625 possible combinations ---
-        gen	nevals	avg     	min    	max     
+        gen	nevals	avg     	min    	max
         0  	50    	0.202404	0.10128	0.962716
         1  	26    	0.383083	0.10128	0.962716
         2  	31    	0.575214	0.155259	0.962716
