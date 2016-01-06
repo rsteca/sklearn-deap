@@ -20,41 +20,48 @@ Usage examples
 Example of usage:
 
 ```python
-from evolutionary_search import EvolutionaryAlgorithmSearchCV
-from sklearn import datasets
-from sklearn.decomposition import PCA
-from sklearn.pipeline import Pipeline
-from sklearn.svm import SVC
+import sklearn.datasets
+import numpy as np
+import random
 
-grid = {
-    'svc__C': [0.001, 0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.3, 1.5, 1.7, 10, 100, 1000],
-    'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-    'pca__n_components': [1, 2, 3, 4]
-}
-iris = datasets.load_iris()
-X, y = iris.data, iris.target
-pipeline = Pipeline(steps=[
-    ('pca', PCA()),
-    ('svc', SVC())
-])
-clf = EvolutionaryAlgorithmSearchCV(pipeline, grid, scoring=None, verbose=True, n_jobs=4, population_size=5)
-clf.fit(X, y)
+data = sklearn.datasets.load_digits()
+X = data["data"]
+y = data["target"]
+
+from sklearn.svm import SVC
+from sklearn.cross_validation import StratifiedKFold
+
+paramgrid = {"kernel": ["rbf"],
+             "C"     : np.logspace(-9, 9, num=25, base=10),
+             "gamma" : np.logspace(-9, 9, num=25, base=10)}
+
+random.seed(1)
+
+from evolutionary_search import EvolutionaryAlgorithmSearchCV
+cv = EvolutionaryAlgorithmSearchCV(estimator=SVC(),
+                                   params=paramgrid,
+                                   scoring="accuracy",
+                                   cv=StratifiedKFold(y, n_folds=4),
+                                   verbose=1,
+                                   population_size=50,
+                                   gene_mutation_prob=0.10,
+                                   gene_crossover_prob=0.5,
+                                   tournament_size=3,
+                                   generations_number=5,
+                                   n_jobs=4)
+cv.fit(X, y)
 ```
 
 Output:
 
-        --- Evolve in 240 possible combinations ---
-        gen nevals  avg     min         max     
-        0   5       0.84188 0.615919    0.966346
-        1   4       0.95438 0.926282    0.972756
-        2   3       0.971581    0.966346    0.973291
-        3   4       0.969017    0.952457    0.973291
-        4   2       0.973291    0.973291    0.973291
-        5   2       0.965171    0.932692    0.973291
-        6   4       0.973291    0.973291    0.973291
-        7   0       0.973291    0.973291    0.973291
-        8   4       0.973291    0.973291    0.973291
-        9   2       0.971902    0.966346    0.973291
-        10  0       0.973291    0.973291    0.973291
-        Best individual is: {"pca__n_components": 3, "svc__kernel": "linear", "svc__C": 1.0}
-        with fitness: (0.9732905982905983,)
+        Types [1, 2, 2] and maxint [0, 24, 24] detected
+        --- Evolve in 625 possible combinations ---
+        gen	nevals	avg     	min    	max     
+        0  	50    	0.202404	0.10128	0.962716
+        1  	26    	0.383083	0.10128	0.962716
+        2  	31    	0.575214	0.155259	0.962716
+        3  	29    	0.758308	0.105732	0.976071
+        4  	22    	0.938086	0.158041	0.976071
+        5  	26    	0.934201	0.155259	0.976071
+        Best individual is: {'kernel': 'rbf', 'C': 31622.776601683792, 'gamma': 0.001}
+        with fitness: 0.976071229827
