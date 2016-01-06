@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import random
-import types
 from deap import base, creator, tools, algorithms
 from multiprocessing import Pool
 from sklearn.base import clone, is_classifier
-from sklearn.model_selection import check_cv
-from sklearn.model_selection._search import BaseSearchCV
-from sklearn.model_selection._validation import _fit_and_score
+try:
+    from sklearn.model_selection import check_cv
+    from sklearn.model_selection._search import BaseSearchCV
+    from sklearn.model_selection._validation import _fit_and_score
+except ImportError:
+    from sklearn.cross_validation import check_cv, _fit_and_score
+    from sklearn.grid_search import BaseSearchCV
 from sklearn.metrics.scorer import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
-
-try:
-    import copy_reg as copyreg
-except ImportError:
-    import copyreg
 
 
 def enum(**enums):
@@ -85,7 +83,7 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     parameters = _individual_to_params(individual, name_values)
     score = 0
     n_test = 0
-    for train, test in cv.split(X, y):
+    for train, test in cv:
         _score, _, _ = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                      train=train, test=test, verbose=verbose,
                                      parameters=parameters, fit_params=fit_params,
@@ -99,13 +97,6 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     score /= float(n_test)
 
     return (score,)
-
-
-def _reduce_method(m):
-    if m.im_self is None:
-        return getattr, (m.im_class, m.im_func.func_name)
-    else:
-        return getattr, (m.im_self, m.im_func.func_name)
 
 
 class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
@@ -326,9 +317,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
 
         if self.n_jobs > 1:
-            copyreg.pickle(types.MethodType, _reduce_method)
             pool = Pool(processes=self.n_jobs)
-            # self.toolbox.register("map", parmap)
             toolbox.register("map", pool.map)
         pop = toolbox.population(n=self.population_size)
         hof = tools.HallOfFame(1)
