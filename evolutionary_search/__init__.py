@@ -291,6 +291,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                                  'of samples (%i) than data (X: %i samples)'
                                  % (len(y), n_samples))
         cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))
+        cv = check_cv(self.cv, y=y, classifier=is_classifier(self.estimator))
 
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
         creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
