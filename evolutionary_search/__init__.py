@@ -78,16 +78,26 @@ def _individual_to_params(individual, name_values):
     return dict((name, values[gene]) for gene, (name, values) in zip(individual, name_values))
 
 
-def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
+def _evalFunction(individual, searchobj, name_values, X, y, scorer, cv, iid, fit_params,
                   verbose=0, error_score='raise'):
     parameters = _individual_to_params(individual, name_values)
     score = 0
     n_test = 0
     for train, test in cv:
-        _score, _, _ = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
+        paramkey = str(parameters)
+        if paramkey in searchobj.score_cache:
+            searchobj.num_cache_hits += 1
+            _score = searchobj.score_cache[paramkey]
+        else:
+            _score, _, _ = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                      train=train, test=test, verbose=verbose,
                                      parameters=parameters, fit_params=fit_params,
                                      error_score=error_score)
+            searchobj.num_evaluations += 1
+            searchobj.score_cache[paramkey] = _score
+        if searchobj.verbose and (searchobj.num_evaluations + searchobj.num_cache_hits) % searchobj.population_size == 0:
+            print "Scoring evaluations: %d, Cache hits: %d, Total: %d" % (
+                searchobj.num_evaluations, searchobj.num_cache_hits, searchobj.num_evaluations + searchobj.num_cache_hits)
         if iid:
             score += _score*len(test)
             n_test += len(test)
@@ -266,6 +276,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_crossover_prob = gene_crossover_prob
         self.tournament_size = tournament_size
         self.gene_type = gene_type
+        self.score_cache = {}
+        self.num_cache_hits = 0
+        self.num_evaluations = 0
 
     def fit(self, X, y=None):
         self.best_estimator_ = None
@@ -290,7 +303,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                 raise ValueError('Target variable (y) has a different number '
                                  'of samples (%i) than data (X: %i samples)'
                                  % (len(y), n_samples))
-        cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))
         cv = check_cv(self.cv, y=y, classifier=is_classifier(self.estimator))
 
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -308,7 +320,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("individual", _initIndividual, creator.Individual, maxints=maxints)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        toolbox.register("evaluate", _evalFunction, name_values=name_values, X=X, y=y,
+        toolbox.register("evaluate", _evalFunction, searchobj=self,
+                         name_values=name_values, X=X, y=y,
                          scorer=self.scorer_, cv=cv, iid=self.iid, verbose=self.verbose,
                          error_score=self.error_score, fit_params=self.fit_params)
 
@@ -341,6 +354,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_)
                   )
+            print "Scoring evaluations: %d, Cache hits: %d, Total: %d" % (
+                self.num_evaluations, self.num_cache_hits, self.num_evaluations + self.num_cache_hits)
 
         if current_best_score_ > self.best_score_:
             self.best_score_ = current_best_score_
