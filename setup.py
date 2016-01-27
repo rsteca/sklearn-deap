@@ -4,12 +4,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='sklearn-deap',
-    version='0.1.2',
+    version='0.1.3',
     author='Rodrigo',
     author_email='',
     description='Use evolutionary algorithms instead of gridsearch in scikit-learn.',
     url='https://github.com/rsteca/sklearn-deap',
-    download_url='https://github.com/rsteca/sklearn-deap/tarball/0.1.2',
+    download_url='https://github.com/rsteca/sklearn-deap/tarball/0.1.3',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 2',
