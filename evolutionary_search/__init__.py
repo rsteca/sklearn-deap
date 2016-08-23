@@ -33,14 +33,14 @@ def _get_param_types_maxint(params):
              types - list of types for each parameter
              maxints - list of maximum integer for each particular gene in chromosome
     """
-    name_values = params.items()
+    name_values = list(params.items())
     types = []
     for _, possible_values in name_values:
         if isinstance(possible_values[0], float):
             types.append(param_types.Numerical)
         else:
             types.append(param_types.Categorical)
-    maxints = [len(possible_values)-1 for _, possible_values in name_values]
+    maxints = [len(possible_values) - 1 for _, possible_values in name_values]
     return name_values, types, maxints
 
 
@@ -96,10 +96,10 @@ def _evalFunction(individual, searchobj, name_values, X, y, scorer, cv, iid, fit
             searchobj.num_evaluations += 1
             searchobj.score_cache[paramkey] = _score
         if searchobj.verbose and (searchobj.num_evaluations + searchobj.num_cache_hits) % searchobj.population_size == 0:
-            print "Scoring evaluations: %d, Cache hits: %d, Total: %d" % (
-                searchobj.num_evaluations, searchobj.num_cache_hits, searchobj.num_evaluations + searchobj.num_cache_hits)
+            print("Scoring evaluations: %d, Cache hits: %d, Total: %d" % (
+                searchobj.num_evaluations, searchobj.num_cache_hits, searchobj.num_evaluations + searchobj.num_cache_hits))
         if iid:
-            score += _score*len(test)
+            score += _score * len(test)
             n_test += len(test)
         else:
             score += _score
@@ -341,7 +341,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         stats.register("max", np.max)
 
         if self.verbose:
-            print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints)+1)))
+            print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
 
         pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
                                            ngen=self.generations_number, stats=stats,
@@ -352,10 +352,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         if self.verbose:
             print("Best individual is: %s\nwith fitness: %s" % (
-                current_best_params_, current_best_score_)
-                  )
-            print "Scoring evaluations: %d, Cache hits: %d, Total: %d" % (
-                self.num_evaluations, self.num_cache_hits, self.num_evaluations + self.num_cache_hits)
+                current_best_params_, current_best_score_))
+            print("Scoring evaluations: %d, Cache hits: %d, Total: %d" % (
+                self.num_evaluations, self.num_cache_hits, self.num_evaluations + self.num_cache_hits))
 
         if current_best_score_ > self.best_score_:
             self.best_score_ = current_best_score_
