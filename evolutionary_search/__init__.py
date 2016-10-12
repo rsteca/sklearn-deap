@@ -282,7 +282,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
     def fit(self, X, y=None):
         self.best_estimator_ = None
-        self.best_score_ = -1
+        self.best_score_ = float("-inf")
         self.best_params_ = None
         for possible_params in self.possible_params:
             self._fit(X, y, possible_params)
