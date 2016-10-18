@@ -4,19 +4,15 @@ import random
 from deap import base, creator, tools, algorithms
 from multiprocessing import Pool
 from sklearn.base import clone, is_classifier
-try:
-    from sklearn.model_selection import check_cv
-    from sklearn.model_selection._search import BaseSearchCV
-    from sklearn.model_selection._validation import _fit_and_score
-except ImportError:
-    from sklearn.cross_validation import check_cv, _fit_and_score
-    from sklearn.grid_search import BaseSearchCV
+from sklearn.cross_validation import check_cv, _fit_and_score
+from sklearn.grid_search import BaseSearchCV
 from sklearn.metrics.scorer import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
 
 def enum(**enums):
     return type('Enum', (), enums)
+
 
 param_types = enum(Categorical=1, Numerical=2)
 
