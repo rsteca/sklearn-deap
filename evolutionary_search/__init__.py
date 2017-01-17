@@ -81,23 +81,24 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     parameters = _individual_to_params(individual, name_values)
     score = 0
     n_test = 0
-    for train, test in cv:
-        paramkey = str(individual)
-        if paramkey in score_cache:
-            _score = score_cache[paramkey]
-        else:
+
+    paramkey = str(individual)
+    if paramkey in score_cache:
+        score = score_cache[paramkey]
+    else:
+        for train, test in cv:
             _score, _, _ = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
-                                     train=train, test=test, verbose=verbose,
-                                     parameters=parameters, fit_params=fit_params,
-                                     error_score=error_score)
-            score_cache[paramkey] = _score
-        if iid:
-            score += _score * len(test)
-            n_test += len(test)
-        else:
-            score += _score
-            n_test += 1
-    score /= float(n_test)
+                                    train=train, test=test, verbose=verbose,
+                                    parameters=parameters, fit_params=fit_params,
+                                    error_score=error_score)
+            if iid:
+                score += _score * len(test)
+                n_test += len(test)
+            else:
+                score += _score
+                n_test += 1
+        score /= float(n_test)
+        score_cache[paramkey] = score
 
     return (score,)
 
