@@ -249,11 +249,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
     best_params_: dict
         Dictionary of parameters for the estimator with the best score.
-    
+
     cv_results_: list of dicts or dict
         Returns a pandas compatable dict or list of dicts with the
         log output of the learner.
-        
+
     scorer_ : function
         Scorer function used on the held out data to choose the best
         parameters for the model.
@@ -335,9 +335,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         pop = toolbox.population(n=self.population_size)
         hof = tools.HallOfFame(1)
         stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean)
-        stats.register("min", np.min)
-        stats.register("max", np.max)
+        stats.register("avg", np.nanmean)
+        stats.register("min", np.nanmin)
+        stats.register("max", np.nanmax)
 
         if self.verbose:
             print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
@@ -345,16 +345,16 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
                                            ngen=self.generations_number, stats=stats,
                                            halloffame=hof, verbose=self.verbose)
-        
+
         current_best_score_ = hof[0].fitness.values[0]
         current_best_params_ = _individual_to_params(hof[0], name_values)
-        
+
         log = {x:logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
         if isinstance(self.params, list):
             self.cv_results_.append(log)
         else:
             self.cv_results_ = log
-        
+
         if self.verbose:
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_))
