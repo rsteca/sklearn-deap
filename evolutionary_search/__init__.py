@@ -362,3 +362,4 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if current_best_score_ > self.best_score_:
             self.best_score_ = current_best_score_
             self.best_params_ = current_best_params_
+            
