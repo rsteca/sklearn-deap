@@ -217,7 +217,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         y = data["target"]
 
         from sklearn.svm import SVC
-        from sklearn.cross_validation import StratifiedKFold
+        from sklearn.model_selection import StratifiedKFold
 
         paramgrid = {"kernel": ["rbf"],
                      "C"     : np.logspace(-9, 9, num=25, base=10),
@@ -229,7 +229,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         cv = EvolutionaryAlgorithmSearchCV(estimator=SVC(),
                                            params=paramgrid,
                                            scoring="accuracy",
-                                           cv=StratifiedKFold(y, n_folds=10),
+                                           cv=StratifiedKFold(n_splits=10),
                                            verbose=1,
                                            population_size=50,
                                            gene_mutation_prob=0.10,
