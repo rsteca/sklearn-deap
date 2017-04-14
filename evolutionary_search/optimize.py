@@ -3,8 +3,8 @@ import numpy as np
 import random
 from deap import base, creator, tools, algorithms
 from multiprocessing import Pool
-from cv import _get_param_types_maxint, _initIndividual, _cxIndividual, _mutIndividual, _individual_to_params
-from functools import partial 
+
+from .cv import _get_param_types_maxint, _initIndividual, _cxIndividual, _mutIndividual, _individual_to_params
 
 __score_cache = {} # Used for memoization
 

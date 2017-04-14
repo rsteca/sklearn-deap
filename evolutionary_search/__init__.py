@@ -1,2 +1,2 @@
-from cv import *
-from optimize import maximize
+from .cv import *
+from .optimize import maximize
