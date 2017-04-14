@@ -258,6 +258,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     scorer_ : function
         Scorer function used on the held out data to choose the best
         parameters for the model.
+        
+    all_history_ : list of deap.tools.History objects, indexed by params (len 1 if params is not a list).
+        Use to get the geneology data of the search.
+        
     """
     def __init__(self, estimator, params, scoring=None, cv=4,
                  refit=True, verbose=False, population_size=50,
@@ -277,18 +281,14 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_crossover_prob = gene_crossover_prob
         self.tournament_size = tournament_size
         self.gene_type = gene_type
+        self.all_history_ = []
         self._cv_results = None
-        self._all_history = []
-        self._log = []
     
     @property
     def possible_params(self):
+        """ Used when assuming params is a list. """
         return self.params if isinstance(self.params, list) else [self.params]
     
-    @property
-    def param_names(self):
-        return [list(d.keys()) for d in self.possible_params]
-        
     @property
     def cv_results_(self):
         if self._cv_results is None:  # This is to cache the answer until updated
@@ -296,7 +296,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             # If not already fit, returns an empty dictionary
             possible_params = self.possible_params  # Pre-load property for use in this function
             out = defaultdict(list)
-            for p, gen in enumerate(self._all_history):
+            for p, gen in enumerate(self.all_history_):
                 # Get individuals and indexes, their list of scores, and additionally the name_values for this set of parameters
                 idxs, individuals  = zip(*list(gen.genealogy_history.items()))
                 each_scores = [score_cache[str(k)] for k in individuals]
@@ -397,14 +397,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                                            halloffame=hof, verbose=self.verbose)
         
         # Save History
-        self._all_history.append(hist)
-        
-        # Save Log
-        log = {x:logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
-        self._log.append(log)
+        self.all_history_.append(hist)
 
         if self.verbose:
-            current_best_score_ = hof[0].fitness.values[0]
+            current_best_score_  = hof[0].fitness.values[0]
             current_best_params_ = _individual_to_params(hof[0], name_values)
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_))
