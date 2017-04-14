@@ -5,8 +5,8 @@ from deap import base, creator, tools, algorithms
 from multiprocessing import Pool
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
-from sklearn.cross_validation import check_cv, _fit_and_score
-from sklearn.model_selection._search import BaseSearchCV
+from sklearn.cross_validation import _fit_and_score
+from sklearn.model_selection._search import BaseSearchCV, check_cv
 from sklearn.metrics.scorer import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
@@ -87,7 +87,7 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     if paramkey in score_cache:
         score = np.mean(score_cache[paramkey])
     else:
-        for train, test in cv:
+        for train, test in cv.split(X,y):
             _score, _, _ = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                     train=train, test=test, verbose=verbose,
                                     parameters=parameters, fit_params=fit_params,
