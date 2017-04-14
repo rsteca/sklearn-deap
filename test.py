@@ -1,7 +1,7 @@
 from evolutionary_search import EvolutionaryAlgorithmSearchCV
 import sklearn.datasets
 import numpy as np
-from sklearn.cross_validation import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 import pandas as pd
 
@@ -14,10 +14,11 @@ X.shape, y.shape
 paramgrid = {"kernel": ["rbf"],
              "C"     : np.logspace(-9, 9, num=5, base=10),
              "gamma" : np.logspace(-9, 9, num=5, base=10)}
+             
 cv = EvolutionaryAlgorithmSearchCV(estimator=SVC(),
                                    params=paramgrid,
                                        scoring="accuracy",
-                                       cv=StratifiedKFold(y, n_folds=10),
+                                       cv=StratifiedKFold(n_splits=10),
                                        verbose=True,
                                        population_size=10,
                                        gene_mutation_prob=0.10,
