@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 import numpy as np
 import random
 from deap import base, creator, tools, algorithms
@@ -6,10 +8,9 @@ from multiprocessing import Pool
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
-from sklearn.model_selection._search import BaseSearchCV, check_cv
+from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param_grid
 from sklearn.metrics.scorer import check_scoring
-from sklearn.utils.validation import _num_samples, indexable
-
+from sklearn.utils.validation import _num_samples, indexable, check_is_fitted
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -284,6 +285,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_type = gene_type
         self.all_history_ = []
         self._cv_results = None
+        _check_param_grid(params)
 
     @property
     def possible_params(self):
