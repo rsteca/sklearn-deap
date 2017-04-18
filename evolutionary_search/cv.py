@@ -89,6 +89,7 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
         score = np.mean(score_cache[paramkey])
     else:
         for train, test in cv.split(X, y):
+            assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
             _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                     train=train, test=test, verbose=verbose,
                                     parameters=parameters, fit_params=fit_params,
@@ -100,6 +101,8 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
             else:
                 score += _score
                 n_test += 1
+                
+        assert n_test > 0, "No fitting was accomplished, likely due to insufficient data."
         score /= float(n_test)
         score_cache[paramkey].append(score)
 
