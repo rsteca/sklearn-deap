@@ -285,7 +285,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_type = gene_type
         self.all_history_ = []
         self._cv_results = None
-        _check_param_grid(params)
 
     @property
     def possible_params(self):
@@ -329,6 +328,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     def fit(self, X, y=None):
         self.best_estimator_ = None
         for possible_params in self.possible_params:
+            _check_param_grid(possible_params)
             self._fit(X, y, possible_params)
         if self.refit:
             self.best_estimator_ = clone(self.estimator)
