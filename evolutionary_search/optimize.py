@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import random
 from deap import base, creator, tools, algorithms
 from multiprocessing import Pool
 
 from .cv import _get_param_types_maxint, _initIndividual, _cxIndividual, _mutIndividual, _individual_to_params
 
-__score_cache = {} # Used for memoization
+__score_cache = {}  # Used for memoization
 
 def _evalFunction(func, individual, name_values, verbose=0, error_score='raise', args={}):
     parameters = _individual_to_params(individual, name_values)
     score = 0
-    n_test = 0
 
     paramkey = str(individual)
     if paramkey in __score_cache:
@@ -26,18 +24,18 @@ def _evalFunction(func, individual, name_values, verbose=0, error_score='raise',
                 score = func(**_parameters)
             except:
                 score = error_score
-                
+
         __score_cache[paramkey] = score
 
     return (score,)
 
 def maximize(func, parameter_dict, args={},
-                verbose=False, population_size=50,
-                gene_mutation_prob=0.1, gene_crossover_prob=0.5,
-                tournament_size=3, generations_number=10, gene_type=None,
-                n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
+            verbose=False, population_size=50,
+            gene_mutation_prob=0.1, gene_crossover_prob=0.5,
+            tournament_size=3, generations_number=10, gene_type=None,
+            n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
     """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize."""
-    
+
     global __score_cache
     __score_cache = {}  # Refresh this dict
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -46,7 +44,7 @@ def maximize(func, parameter_dict, args={},
     toolbox = base.Toolbox()
 
     name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
-    
+
     if verbose:
         print("Types %s and maxint %s detected" % (gene_type, maxints))
 
@@ -63,7 +61,7 @@ def maximize(func, parameter_dict, args={},
     toolbox.register("select", tools.selTournament, tournsize=tournament_size)
 
     if n_jobs > 1:
-        pool = Pool(processes=self.n_jobs)
+        pool = Pool(processes=n_jobs)
         toolbox.register("map", pool.map)
     pop = toolbox.population(n=population_size)
     hof = tools.HallOfFame(1)
@@ -78,11 +76,11 @@ def maximize(func, parameter_dict, args={},
     pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
                                        ngen=generations_number, stats=stats,
                                        halloffame=hof, verbose=verbose)
-    
+
     current_best_score_ = hof[0].fitness.values[0]
     current_best_params_ = _individual_to_params(hof[0], name_values)
-    
-    log = {x:logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
+
+    log = {x: logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
 
     if verbose:
         print("Best individual is: %s\nwith fitness: %s" % (

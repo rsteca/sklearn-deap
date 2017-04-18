@@ -87,12 +87,12 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     if paramkey in score_cache:
         score = np.mean(score_cache[paramkey])
     else:
-        for train, test in cv.split(X,y):
+        for train, test in cv.split(X, y):
             _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                     train=train, test=test, verbose=verbose,
                                     parameters=parameters, fit_params=fit_params,
                                     error_score=error_score)[0]
-                                    
+
             if iid:
                 score += _score * len(test)
                 n_test += len(test)
@@ -259,10 +259,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     scorer_ : function
         Scorer function used on the held out data to choose the best
         parameters for the model.
-        
+
     all_history_ : list of deap.tools.History objects, indexed by params (len 1 if params is not a list).
         Use to get the geneology data of the search.
-        
+
     """
     def __init__(self, estimator, params, scoring=None, cv=4,
                  refit=True, verbose=False, population_size=50,
@@ -284,12 +284,12 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_type = gene_type
         self.all_history_ = []
         self._cv_results = None
-    
+
     @property
     def possible_params(self):
         """ Used when assuming params is a list. """
         return self.params if isinstance(self.params, list) else [self.params]
-    
+
     @property
     def cv_results_(self):
         if self._cv_results is None:  # This is to cache the answer until updated
@@ -298,30 +298,32 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             possible_params = self.possible_params  # Pre-load property for use in this function
             out = defaultdict(list)
             for p, gen in enumerate(self.all_history_):
-                # Get individuals and indexes, their list of scores, and additionally the name_values for this set of parameters
-                idxs, individuals  = zip(*list(gen.genealogy_history.items()))
+                # Get individuals and indexes, their list of scores,
+                # and additionally the name_values for this set of parameters
+                idxs, individuals = zip(*list(gen.genealogy_history.items()))
                 each_scores = [score_cache[str(k)] for k in individuals]
                 name_values, _, _ = _get_param_types_maxint(possible_params[p])
-                
+
                 # Add to output
-                out['param_index']     += [p for _ in range(len(idxs))]
-                out['index']           += idxs
-                out['params']          += [_individual_to_params(indiv,name_values) for indiv in individuals] # Converts
+                out['param_index'] += [p] * len(idxs)
+                out['index'] += idxs
+                out['params'] += [_individual_to_params(indiv, name_values)
+                                for indiv in individuals]
                 out['mean_test_score'] += [np.nanmean(scores) for scores in each_scores]
-                out['std_test_score']  += [np.nanstd(scores) for scores in each_scores]
-                out['min_test_score']  += [np.nanmin(scores) for scores in each_scores]
-                out['max_test_score']  += [np.nanmax(scores) for scores in each_scores]
+                out['std_test_score'] += [np.nanstd(scores) for scores in each_scores]
+                out['min_test_score'] += [np.nanmin(scores) for scores in each_scores]
+                out['max_test_score'] += [np.nanmax(scores) for scores in each_scores]
                 out['nan_test_score?'] += [np.any(np.isnan(scores)) for scores in each_scores]
             self._cv_results = out
-        
+
         return self._cv_results
-        
+
     @property
     def best_index_(self):
         """ Returns the absolute index (not the 'index' column) with the best max_score
             from cv_results_. """
         return np.argmax(self.cv_results_['max_test_score'])
-    
+
     def fit(self, X, y=None):
         self.best_estimator_ = None
         for possible_params in self.possible_params:
@@ -330,13 +332,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_params_)
             self.best_estimator_.fit(X, y)
-            
+
     def _fit(self, X, y, parameter_dict):
-        
-        self._cv_results = None # To indicate to the property the need to update
-
+        self._cv_results = None  # To indicate to the property the need to update
         self.scorer_ = check_scoring(self.estimator, scoring=self.scoring)
-
         n_samples = _num_samples(X)
         X, y = indexable(X, y)
 
@@ -377,7 +376,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             toolbox.register("map", pool.map)
         pop = toolbox.population(n=self.population_size)
         hof = tools.HallOfFame(1)
-        
+
         # Stats
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("avg", np.nanmean)
@@ -389,19 +388,19 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.decorate("mate", hist.decorator)
         toolbox.decorate("mutate", hist.decorator)
         hist.update(pop)
-        
+
         if self.verbose:
             print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
 
         pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
                                            ngen=self.generations_number, stats=stats,
                                            halloffame=hof, verbose=self.verbose)
-        
+
         # Save History
         self.all_history_.append(hist)
 
         if self.verbose:
-            current_best_score_  = hof[0].fitness.values[0]
+            current_best_score_ = hof[0].fitness.values[0]
             current_best_params_ = _individual_to_params(hof[0], name_values)
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_))
