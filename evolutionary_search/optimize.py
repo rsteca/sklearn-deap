@@ -2,6 +2,7 @@
 import numpy as np
 from deap import base, creator, tools, algorithms
 from multiprocessing import Pool
+from sklearn.model_selection._search import _check_param_grid
 
 from .cv import _get_param_types_maxint, _initIndividual, _cxIndividual, _mutIndividual, _individual_to_params
 
@@ -37,6 +38,7 @@ def maximize(func, parameter_dict, args={},
     """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize."""
 
     global __score_cache
+    _check_param_grid(parameter_dict)
     __score_cache = {}  # Refresh this dict
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
