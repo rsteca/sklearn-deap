@@ -317,7 +317,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                 # Get individuals and indexes, their list of scores,
                 # and additionally the name_values for this set of parameters
                 idxs, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                                        for idx, indiv in list(gen.genealogy_history.items())])
+                                                        for idx, indiv in list(gen.genealogy_history.items())
+                                                        if not np.all(np.isnan(indiv.fitness.values))])
                 
                 name_values, _, _ = _get_param_types_maxint(possible_params[p])
 

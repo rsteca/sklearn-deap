@@ -47,10 +47,10 @@ class TestEvolutionarySearch(unittest.TestCase):
         def try_with_params(**kwargs):
             cv = readme(**kwargs)
             cv_results_ = cv.cv_results_
+            print("CV Results:\n{}".format(cv_results_))
             self.assertIsNotNone(cv_results_, msg="cv_results is None.")
             self.assertNotEqual(cv_results_, {}, msg="cv_results is empty.")
             self.assertAlmostEqual(cv.best_score_, 1., delta=.05, msg="Did not find the best score. Returned: {}".format(cv.best_score_))
-            print("CV Results:\n{}".format(cv_results))
             
         try_with_params(n_jobs=1)
         try_with_params(n_jobs=4)
@@ -63,9 +63,9 @@ class TestEvolutionarySearch(unittest.TestCase):
     
         def try_with_params(**max_args):
             best_params, best_score, score_results = maximize(func, param_grid, args, verbose=True, **max_args)
+            print("Score Results:\n{}".format(score_results))
             self.assertEqual(best_params, {'x': 0., 'y': 0., 'z': True})
             self.assertEqual(best_score, 2.)
-            print("Score Results:\n{}".format(score_results))
             
         try_with_params(n_jobs=1)
         try_with_params(n_jobs=4)

@@ -95,7 +95,8 @@ def maximize(func, parameter_dict, args={},
 
     # Generate score_cache with real parameters
     _, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                            for idx, indiv in list(hist.genealogy_history.items())])
+                                            for idx, indiv in list(hist.genealogy_history.items())
+                                            if not np.all(np.isnan(indiv.fitness.values))])
     unique_individuals = {str(indiv): (indiv, score) for indiv, score in zip(individuals, each_scores)}
     score_results = tuple([(_individual_to_params(indiv, name_values), score)
                              for indiv, score in unique_individuals.values()])
