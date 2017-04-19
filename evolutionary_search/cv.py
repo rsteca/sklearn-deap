@@ -94,7 +94,6 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     paramkey = str(individual)
     if paramkey in score_cache:
         score = score_cache[paramkey]
-        print("Memoized")
     else:
         for train, test in cv.split(X, y):
             assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
