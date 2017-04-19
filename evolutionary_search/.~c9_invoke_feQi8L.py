@@ -94,7 +94,6 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     paramkey = str(individual)
     if paramkey in score_cache:
         score = score_cache[paramkey]
-        print("Memoized")
     else:
         for train, test in cv.split(X, y):
             assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
@@ -317,8 +316,14 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             for p, gen in enumerate(self.all_history_):
                 # Get individuals and indexes, their list of scores,
                 # and additionally the name_values for this set of parameters
-                idxs, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                                        for idx, indiv in list(gen.genealogy_history.items())])
+                idxs, individuals, each_scores = zip(*[(idx, indiv, np.mea(indiv.fitness.values))
+                                                        for idx, indiv in list(gen.genealogy_history.items())
+                                                        if str(indiv) in self.score_cache])
+                
+                # Use this to catch a strange memoization error
+                # assert not [indiv for idx, indiv in
+                #             list(gen.genealogy_history.items())
+                #             if str(indiv) not in self.score_cache], "Not all individuals have a score. NJobs: {}".format(self.n_jobs)
                 
                 name_values, _, _ = _get_param_types_maxint(possible_params[p])
 

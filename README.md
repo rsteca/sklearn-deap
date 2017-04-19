@@ -70,3 +70,20 @@ Output:
         5  	26    	0.934201	0.155259	0.976071
         Best individual is: {'kernel': 'rbf', 'C': 31622.776601683792, 'gamma': 0.001}
         with fitness: 0.976071229827
+
+Example of usage:
+```
+def func(x, y, m=1., z=False):
+    return m * (np.exp(-(x**2 + y**2)) + float(z))
+
+param_grid = {'x': [-1., 0., 1.], 'y': [-1., 0., 1.], 'z': [True, False]}
+args = {'m': 1.}
+best_params, best_score, score_results = maximize(func, param_grid, args, verbose=False)
+```
+
+Output:
+```
+best_params = {'x':0., 'y':0., 'z':True}
+best_score  = 2.
+score_results = 
+```

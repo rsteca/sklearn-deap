@@ -1,32 +1,24 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from deap import base, creator, tools, algorithms
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 from sklearn.model_selection._search import _check_param_grid
 
 from .cv import _get_param_types_maxint, _initIndividual, _cxIndividual, _mutIndividual, _individual_to_params
-
-__score_cache = {}  # Used for memoization
 
 def _evalFunction(func, individual, name_values, verbose=0, error_score='raise', args={}):
     parameters = _individual_to_params(individual, name_values)
     score = 0
 
-    paramkey = str(individual)
-    if paramkey in __score_cache:
-        score = __score_cache[paramkey]
+    _parameters = dict(parameters)
+    _parameters.update(args)
+    if error_score == "raise":
+        score = func(**_parameters)
     else:
-        _parameters = dict(parameters)
-        _parameters.update(args)
-        if error_score == "raise":
+        try:
             score = func(**_parameters)
-        else:
-            try:
-                score = func(**_parameters)
-            except:
-                score = error_score
-
-        __score_cache[paramkey] = score
+        except:
+            score = error_score
 
     return (score,)
 
@@ -35,15 +27,28 @@ def maximize(func, parameter_dict, args={},
             gene_mutation_prob=0.1, gene_crossover_prob=0.5,
             tournament_size=3, generations_number=10, gene_type=None,
             n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
-    """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize."""
+    """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize.
+        
+        Returns
+        ------------------
+        best_params_ : dict
+            A list of parameters for the best learner.
+            
+        best_score_ : float
+            The score of the learner described by best_params_
+            
+        score_results : tuple of 2-tuples ((dict, float), ...)
+            The score of every individual evaluation indexed by it's parameters.
+    """
 
-    global __score_cache
     _check_param_grid(parameter_dict)
-    __score_cache = {}  # Refresh this dict
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
+    if n_jobs > 1:
+        pool = Pool(processes=n_jobs)
+        toolbox.register("map", pool.map)
 
     name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
 
@@ -62,9 +67,7 @@ def maximize(func, parameter_dict, args={},
     toolbox.register("mutate", _mutIndividual, indpb=gene_mutation_prob, up=maxints)
     toolbox.register("select", tools.selTournament, tournsize=tournament_size)
 
-    if n_jobs > 1:
-        pool = Pool(processes=n_jobs)
-        toolbox.register("map", pool.map)
+    # Tools
     pop = toolbox.population(n=population_size)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -72,6 +75,12 @@ def maximize(func, parameter_dict, args={},
     stats.register("min", np.min)
     stats.register("max", np.max)
 
+    ## History
+    hist = tools.History()
+    toolbox.decorate("mate", hist.decorator)
+    toolbox.decorate("mutate", hist.decorator)
+    hist.update(pop)
+        
     if verbose:
         print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
 
@@ -82,10 +91,21 @@ def maximize(func, parameter_dict, args={},
     current_best_score_ = hof[0].fitness.values[0]
     current_best_params_ = _individual_to_params(hof[0], name_values)
 
-    log = {x: logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
+    # log = {x: logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
 
+    # Generate score_cache with real parameters
+    _, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
+                                            for idx, indiv in list(hist.genealogy_history.items())])
+    unique_individuals = {str(indiv): (indiv, score) for indiv, score in zip(individuals, each_scores)}
+    score_results = tuple([(_individual_to_params(indiv, name_values), score)
+                             for indiv, score in unique_individuals.values()])
+    
     if verbose:
         print("Best individual is: %s\nwith fitness: %s" % (
             current_best_params_, current_best_score_))
 
-    return current_best_params_, current_best_score_, log
+    if n_jobs > 1:
+        pool.close()
+        pool.join()
+    
+    return current_best_params_, current_best_score_, score_results
