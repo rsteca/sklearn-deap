@@ -77,16 +77,16 @@ def _individual_to_params(individual, name_values):
 
 
 def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
-                  verbose=0, error_score='raise', score_cache = {}):
+                  verbose=0, error_score='raise', score_cache={}):
     """ Developer Note:
         --------------------
         score_cache was purposefully moved to parameters, and given a dict reference.
         It will be modified in-place by _evalFunction based on it's reference.
-        This is to allow for a managed, paralell memoization dict, 
+        This is to allow for a managed, paralell memoization dict,
         and also for different memoization per instance of EvolutionaryAlgorithmSearchCV.
         Remember that dicts created inside function definitions are presistent between calls,
         So unless it is replaced this function will be memoized each call automatically. """
-        
+
     parameters = _individual_to_params(individual, name_values)
     score = 0
     n_test = 0
@@ -317,9 +317,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                 # Get individuals and indexes, their list of scores,
                 # and additionally the name_values for this set of parameters
                 idxs, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                                        for idx, indiv in list(gen.genealogy_history.items())
-                                                        if not np.all(np.isnan(indiv.fitness.values))])
-                
+                                                for idx, indiv in list(gen.genealogy_history.items())
+                                                if not np.all(np.isnan(indiv.fitness.values))])
+
                 name_values, _, _ = _get_param_types_maxint(possible_params[p])
 
                 # Add to output
@@ -344,12 +344,14 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
     def fit(self, X, y=None):
         self.best_estimator_ = None
+        self.best_mem_score_ = float("-inf")
+        self.best_mem_params_ = None
         for possible_params in self.possible_params:
             _check_param_grid(possible_params)
             self._fit(X, y, possible_params)
         if self.refit:
             self.best_estimator_ = clone(self.estimator)
-            self.best_estimator_.set_params(**self.best_params_)
+            self.best_estimator_.set_params(**self.best_mem_params_)
             self.best_estimator_.fit(X, y)
 
     def _fit(self, X, y, parameter_dict):
@@ -383,18 +385,18 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self.n_jobs > 1:
             pool = Pool(processes=self.n_jobs)
             toolbox.register("map", pool.map)
-        
+
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
                          scorer=self.scorer_, cv=cv, iid=self.iid, verbose=self.verbose,
-                         error_score=self.error_score, fit_params=self.fit_params, score_cache=self.score_cache)
+                         error_score=self.error_score, fit_params=self.fit_params,
+                         score_cache=self.score_cache)
 
         toolbox.register("mate", _cxIndividual, indpb=self.gene_crossover_prob, gene_type=self.gene_type)
 
         toolbox.register("mutate", _mutIndividual, indpb=self.gene_mutation_prob, up=maxints)
         toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
 
-        
         pop = toolbox.population(n=self.population_size)
         hof = tools.HallOfFame(1)
 
@@ -419,15 +421,19 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Save History
         self.all_history_.append(hist)
+        current_best_score_ = hof[0].fitness.values[0]
+        current_best_params_ = _individual_to_params(hof[0], name_values)
         if self.verbose:
-            current_best_score_ = hof[0].fitness.values[0]
-            current_best_params_ = _individual_to_params(hof[0], name_values)
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_))
 
+        if current_best_score_ > self.best_mem_score_:
+            self.best_mem_score_ = current_best_score_
+            self.best_mem_params_ = current_best_params_
+
         # Check memoization, potentially unknown bug
         assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
-        
+
         if self.n_jobs > 1:
             pool.close()
             pool.join()
