@@ -4,29 +4,22 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.svm import SVC
 import unittest
+import random
 
 def func(x, y, m=1., z=False):
     return m * (np.exp(-(x**2 + y**2)) + float(z))
-            
+
 def readme(n_jobs=1):
-    import sklearn.datasets
-    import numpy as np
-    import random
-    
     data = sklearn.datasets.load_digits()
     X = data["data"]
     y = data["target"]
-    
-    from sklearn.svm import SVC
-    from sklearn.model_selection import StratifiedKFold
-    
+
     paramgrid = {"kernel": ["rbf"],
-                 "C"     : np.logspace(-9, 9, num=25, base=10),
-                 "gamma" : np.logspace(-9, 9, num=25, base=10)}
-    
+                 "C": np.logspace(-9, 9, num=25, base=10),
+                 "gamma": np.logspace(-9, 9, num=25, base=10)}
+
     random.seed(1)
-    
-    from evolutionary_search import EvolutionaryAlgorithmSearchCV
+
     cv = EvolutionaryAlgorithmSearchCV(estimator=SVC(),
                                        params=paramgrid,
                                        scoring="accuracy",
@@ -40,7 +33,7 @@ def readme(n_jobs=1):
                                        n_jobs=n_jobs)
     cv.fit(X, y)
     return cv
-    
+
 class TestEvolutionarySearch(unittest.TestCase):
 
     def test_cv(self):
@@ -50,26 +43,28 @@ class TestEvolutionarySearch(unittest.TestCase):
             print("CV Results:\n{}".format(cv_results_))
             self.assertIsNotNone(cv_results_, msg="cv_results is None.")
             self.assertNotEqual(cv_results_, {}, msg="cv_results is empty.")
-            self.assertAlmostEqual(cv.best_score_, 1., delta=.05, msg="Did not find the best score. Returned: {}".format(cv.best_score_))
-            
+            self.assertAlmostEqual(cv.best_score_, 1., delta=.05,
+                msg="Did not find the best score. Returned: {}".format(cv.best_score_))
+
         try_with_params(n_jobs=1)
         try_with_params(n_jobs=4)
 
     def test_optimize(self):
         """ Simple hill climbing optimization with some twists. """
-        
+
         param_grid = {'x': [-1., 0., 1.], 'y': [-1., 0., 1.], 'z': [True, False]}
         args = {'m': 1.}
-    
+
         def try_with_params(**max_args):
-            best_params, best_score, score_results = maximize(func, param_grid, args, verbose=True, **max_args)
+            best_params, best_score, score_results = maximize(func, param_grid,
+                                                args, verbose=True, **max_args)
             print("Score Results:\n{}".format(score_results))
             self.assertEqual(best_params, {'x': 0., 'y': 0., 'z': True})
             self.assertEqual(best_score, 2.)
-            
+
         try_with_params(n_jobs=1)
         try_with_params(n_jobs=4)
-    
-        
+
+
 if __name__ == "__main__":
     unittest.main()

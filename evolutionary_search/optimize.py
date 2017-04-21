@@ -28,15 +28,15 @@ def maximize(func, parameter_dict, args={},
             tournament_size=3, generations_number=10, gene_type=None,
             n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
     """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize.
-        
+
         Returns
         ------------------
         best_params_ : dict
             A list of parameters for the best learner.
-            
+
         best_score_ : float
             The score of the learner described by best_params_
-            
+
         score_results : tuple of 2-tuples ((dict, float), ...)
             The score of every individual evaluation indexed by it's parameters.
     """
@@ -75,12 +75,12 @@ def maximize(func, parameter_dict, args={},
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    ## History
+    # History
     hist = tools.History()
     toolbox.decorate("mate", hist.decorator)
     toolbox.decorate("mutate", hist.decorator)
     hist.update(pop)
-        
+
     if verbose:
         print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
 
@@ -91,16 +91,14 @@ def maximize(func, parameter_dict, args={},
     current_best_score_ = hof[0].fitness.values[0]
     current_best_params_ = _individual_to_params(hof[0], name_values)
 
-    # log = {x: logbook.select(x) for x in logbook.header}  # Convert logbook to pandas compatible dict
-
     # Generate score_cache with real parameters
     _, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                            for idx, indiv in list(hist.genealogy_history.items())
-                                            if not np.all(np.isnan(indiv.fitness.values))])
+                                    for idx, indiv in list(hist.genealogy_history.items())
+                                    if indiv.fitness.valid and not np.all(np.isnan(indiv.fitness.values))])
     unique_individuals = {str(indiv): (indiv, score) for indiv, score in zip(individuals, each_scores)}
     score_results = tuple([(_individual_to_params(indiv, name_values), score)
-                             for indiv, score in unique_individuals.values()])
-    
+                         for indiv, score in unique_individuals.values()])
+
     if verbose:
         print("Best individual is: %s\nwith fitness: %s" % (
             current_best_params_, current_best_score_))
@@ -108,5 +106,5 @@ def maximize(func, parameter_dict, args={},
     if n_jobs > 1:
         pool.close()
         pool.join()
-    
+
     return current_best_params_, current_best_score_, score_results

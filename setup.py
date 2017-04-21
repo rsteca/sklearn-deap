@@ -28,6 +28,6 @@ setup(
         'numpy>=1.9.3',
         'scipy>=0.16.0',
         'deap>=1.0.2',
-        'scikit-learn>=0.16.1,<0.20',
+        'scikit-learn>=0.18.0',
     ],
 )
