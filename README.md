@@ -71,8 +71,11 @@ Output:
         Best individual is: {'kernel': 'rbf', 'C': 31622.776601683792, 'gamma': 0.001}
         with fitness: 0.976071229827
 
-Example of usage:
-```
+Example for maximizing just some function:
+
+```python
+from evolutionary_search import maximize
+
 def func(x, y, m=1., z=False):
     return m * (np.exp(-(x**2 + y**2)) + float(z))
 
@@ -82,8 +85,21 @@ best_params, best_score, score_results = maximize(func, param_grid, args, verbos
 ```
 
 Output:
-```
-best_params = {'x':0., 'y':0., 'z':True}
-best_score  = 2.
-score_results = 
+
+```python
+best_params = {'x': 0.0, 'y': 0.0, 'z': True}
+best_score  = 2.0
+score_results = (({'x': 1.0, 'y': -1.0, 'z': True}, 1.1353352832366128),
+ ({'x': -1.0, 'y': 1.0, 'z': True}, 1.3678794411714423),
+ ({'x': 0.0, 'y': 1.0, 'z': True}, 1.3678794411714423),
+ ({'x': -1.0, 'y': 0.0, 'z': True}, 1.3678794411714423),
+ ({'x': 1.0, 'y': 1.0, 'z': True}, 1.1353352832366128),
+ ({'x': 0.0, 'y': 0.0, 'z': False}, 2.0),
+ ({'x': -1.0, 'y': -1.0, 'z': False}, 0.36787944117144233),
+ ({'x': 1.0, 'y': 0.0, 'z': True}, 1.3678794411714423),
+ ({'x': -1.0, 'y': -1.0, 'z': True}, 1.3678794411714423),
+ ({'x': 0.0, 'y': -1.0, 'z': False}, 1.3678794411714423),
+ ({'x': 1.0, 'y': -1.0, 'z': False}, 1.1353352832366128),
+ ({'x': 0.0, 'y': 0.0, 'z': True}, 2.0),
+ ({'x': 0.0, 'y': -1.0, 'z': True}, 2.0))
 ```
