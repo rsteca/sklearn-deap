@@ -77,8 +77,10 @@ def maximize(func, parameter_dict, args={},
 
     # History
     hist = tools.History()
+    toolbox.decorate("evaluate", hist.decorator)
     toolbox.decorate("mate", hist.decorator)
     toolbox.decorate("mutate", hist.decorator)
+    toolbox.decorate("select", hist.decorator)
     hist.update(pop)
 
     if verbose:
