@@ -406,13 +406,12 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         stats.register("avg", np.nanmean)
         stats.register("min", np.nanmin)
         stats.register("max", np.nanmax)
+        stats.register("std", np.nanstd)
 
         # History
         hist = tools.History()
-        toolbox.decorate("evaluate", hist.decorator)
         toolbox.decorate("mate", hist.decorator)
         toolbox.decorate("mutate", hist.decorator)
-        toolbox.decorate("select", hist.decorator)
         hist.update(pop)
 
         if self.verbose:
