@@ -71,9 +71,9 @@ def maximize(func, parameter_dict, args={},
     pop = toolbox.population(n=population_size)
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", np.mean)
-    stats.register("min", np.min)
-    stats.register("max", np.max)
+    stats.register("avg", np.nanmean)
+    stats.register("min", np.nanmin)
+    stats.register("max", np.nanmax)
     stats.register("std", np.nanstd)
 
     # History
