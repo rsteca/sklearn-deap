@@ -58,3 +58,4 @@ target/
 
 # Jupyter Stuff
 notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints/

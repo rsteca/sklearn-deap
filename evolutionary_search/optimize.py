@@ -39,6 +39,12 @@ def maximize(func, parameter_dict, args={},
 
         score_results : tuple of 2-tuples ((dict, float), ...)
             The score of every individual evaluation indexed by it's parameters.
+
+        hist : deap.tools.History object.
+            Use to get the geneology data of the search.
+
+        logbook: deap.tools.Logbook object.
+            Includes the statistics of the evolution.
     """
 
     _check_param_grid(parameter_dict)
@@ -108,4 +114,4 @@ def maximize(func, parameter_dict, args={},
         pool.close()
         pool.join()
 
-    return current_best_params_, current_best_score_, score_results
+    return current_best_params_, current_best_score_, score_results, hist, logbook
