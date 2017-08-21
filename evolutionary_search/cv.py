@@ -274,6 +274,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     all_history_ : list of deap.tools.History objects, indexed by params (len 1 if params is not a list).
         Use to get the geneology data of the search.
 
+    all_logbooks_: list of the deap.tools.Logbook objects, indexed by params (len 1 if params is not a list).
+       With the statistics of the evolution.
+
     """
     def __init__(self, estimator, params, scoring=None, cv=4,
                  refit=True, verbose=False, population_size=50,
@@ -293,7 +296,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_crossover_prob = gene_crossover_prob
         self.tournament_size = tournament_size
         self.gene_type = gene_type
-        self.all_history_ = []
+        self.all_history_, self.all_logbooks_ = [], []
         self._cv_results = None
         if self.n_jobs > 1:
             self.__manager = Manager()
@@ -406,6 +409,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         stats.register("avg", np.nanmean)
         stats.register("min", np.nanmin)
         stats.register("max", np.nanmax)
+        stats.register("std", np.nanstd)
 
         # History
         hist = tools.History()
@@ -422,6 +426,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Save History
         self.all_history_.append(hist)
+        self.all_logbooks_.append(logbook)
         current_best_score_ = hof[0].fitness.values[0]
         current_best_params_ = _individual_to_params(hof[0], name_values)
         if self.verbose:
