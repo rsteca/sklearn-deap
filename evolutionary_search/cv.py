@@ -298,6 +298,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_type = gene_type
         self.all_history_, self.all_logbooks_ = [], []
         self._cv_results = None
+        self.best_score_ = None
+        self.best_params_ = None
         if self.n_jobs > 1:
             self.__manager = Manager()
             self.score_cache = self.__manager.dict()
@@ -443,6 +445,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self.n_jobs > 1:
             pool.close()
             pool.join()
-        
+
         self.best_score_ = current_best_score_
         self.best_params_ = current_best_params_
