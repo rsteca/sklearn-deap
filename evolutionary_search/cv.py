@@ -443,3 +443,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self.n_jobs > 1:
             pool.close()
             pool.join()
+        
+        self.best_score_ = current_best_score_
+        self.best_params_ = current_best_params_
