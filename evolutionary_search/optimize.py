@@ -26,9 +26,14 @@ def maximize(func, parameter_dict, args={},
             verbose=False, population_size=50,
             gene_mutation_prob=0.1, gene_crossover_prob=0.5,
             tournament_size=3, generations_number=10, gene_type=None,
-            n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
+            pmap=None, error_score='raise'):
     """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize.
-
+        
+        Parameters
+        ------------------
+        pmap : map
+            A map function from a Pool or SCOOP used for parallel processing.
+            
         Returns
         ------------------
         best_params_ : dict
@@ -52,9 +57,8 @@ def maximize(func, parameter_dict, args={},
     creator.create("Individual", list, fitness=creator.FitnessMax)
 
     toolbox = base.Toolbox()
-    if n_jobs > 1:
-        pool = Pool(processes=n_jobs)
-        toolbox.register("map", pool.map)
+    if pmap is not None:
+        toolbox.register("map", pmap)
 
     name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
 
@@ -109,9 +113,5 @@ def maximize(func, parameter_dict, args={},
     if verbose:
         print("Best individual is: %s\nwith fitness: %s" % (
             current_best_params_, current_best_score_))
-
-    if n_jobs > 1:
-        pool.close()
-        pool.join()
 
     return current_best_params_, current_best_score_, score_results, hist, logbook
