@@ -4,7 +4,6 @@ from __future__ import division
 import numpy as np
 import random
 from deap import base, creator, tools, algorithms
-from multiprocessing import Pool, Manager
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
@@ -173,11 +172,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         parameter in range [ind1_parameter, ind2_parameter]. Of course it is correct only
         when parameters of some value is sorted.
 
-    n_jobs : int, default=1
-        Number of jobs to run in parallel.
-
-        Currently it's not working
-
+    pmap : map
+        A map function from a Pool or SCOOP used for parallel processing.
+        
     pre_dispatch : int, or string, optional
         Dummy parameter for compatibility with sklearn's GridSearch
 
@@ -282,12 +279,12 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
                  tournament_size=3, generations_number=10, gene_type=None,
-                 n_jobs=1, iid=True, pre_dispatch='2*n_jobs', error_score='raise',
+                 pmap=None, iid=True, error_score='raise',
                  fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring, fit_params=fit_params,
-            n_jobs=n_jobs, iid=iid, refit=refit, cv=cv, verbose=verbose,
-            pre_dispatch=pre_dispatch, error_score=error_score)
+            iid=iid, refit=refit, cv=cv, verbose=verbose,
+            error_score=error_score)
         self.params = params
         self.population_size = population_size
         self.generations_number = generations_number
@@ -300,11 +297,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self._cv_results = None
         self.best_score_ = None
         self.best_params_ = None
-        if self.n_jobs > 1:
-            self.__manager = Manager()
-            self.score_cache = self.__manager.dict()
-        else:
-            self.score_cache = {}
+        self.score_cache = {}
+        self.pmap = pmap
 
     @property
     def possible_params(self):
@@ -388,9 +382,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("individual", _initIndividual, creator.Individual, maxints=maxints)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        if self.n_jobs > 1:
-            pool = Pool(processes=self.n_jobs)
-            toolbox.register("map", pool.map)
+        if self.pmap is not None:
+            toolbox.register("map", self.pmap)
 
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
@@ -441,10 +434,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Check memoization, potentially unknown bug
         assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
-
-        if self.n_jobs > 1:
-            pool.close()
-            pool.join()
 
         self.best_score_ = current_best_score_
         self.best_params_ = current_best_params_
