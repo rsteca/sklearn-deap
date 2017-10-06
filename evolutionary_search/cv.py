@@ -358,7 +358,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self.refit:
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_mem_params_)
-            self.best_estimator_.fit(X, y, **self.fit_params)
+            if self.fit_params is not None:
+                self.best_estimator_.fit(X, y, **self.fit_params)
+            else:
+                self.best_estimator_.fit(X, y)
 
     def _fit(self, X, y, parameter_dict):
         self._cv_results = None  # To indicate to the property the need to update
