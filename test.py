@@ -37,7 +37,7 @@ class TestEvolutionarySearch(unittest.TestCase):
 
     def test_cv(self):
         def try_with_params(**kwargs):
-            cv = readme(**kwargs)
+            cv = readme()
             cv_results_ = cv.cv_results_
             print("CV Results:\n{}".format(cv_results_))
             self.assertIsNotNone(cv_results_, msg="cv_results is None.")

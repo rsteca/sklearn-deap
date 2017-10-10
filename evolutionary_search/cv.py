@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+import os
+import warnings
 
 import numpy as np
 import random
@@ -172,9 +174,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         parameter in range [ind1_parameter, ind2_parameter]. Of course it is correct only
         when parameters of some value is sorted.
 
-    pmap : map
-        A map function from a Pool or SCOOP used for parallel processing.
-        
+    n_jobs : int or map function, default=1
+        Number of jobs to run in parallel.
+        Also accepts custom parallel map functions from Pool or SCOOP.
+
     pre_dispatch : int, or string, optional
         Dummy parameter for compatibility with sklearn's GridSearch
 
@@ -279,7 +282,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
                  tournament_size=3, generations_number=10, gene_type=None,
-                 pmap=None, iid=True, error_score='raise',
+                 n_jobs=1, iid=True, error_score='raise',
                  fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring, fit_params=fit_params,
@@ -298,7 +301,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.best_score_ = None
         self.best_params_ = None
         self.score_cache = {}
-        self.pmap = pmap
+        self.n_jobs = n_jobs
 
     @property
     def possible_params(self):
@@ -382,8 +385,29 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("individual", _initIndividual, creator.Individual, maxints=maxints)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        if self.pmap is not None:
-            toolbox.register("map", self.pmap)
+        # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
+        # many jobs as possible) then we are going to create a default pool.
+        # Windows users need to be warned of this feature as it only works properly
+        # on linux. They need to encapsulate their pool in an if __name__ == "__main__"
+        # wrapper so that pools are not recursively created when the module is reloaded in each map
+        if isinstance(self.n_jobs, int):
+            if self.n_jobs > 1 or self.n_jobs < 0:
+                from multiprocessing import Pool  # Only imports if needed
+                if os.name == 'nt':               # Checks if we are on Windows
+                    warnings.warn(("Windows requires Pools to be declared from within "
+                                   "an \'if __name__==\"__main__\":\' structure. In this "
+                                   "case, n_jobs will accept map functions as well to "
+                                   "facilitate custom parallelism. Please check to see "
+                                   "that all code is working as expected."))
+                pool = Pool(self.n_jobs)
+                toolbox.register("map", pool.map)
+
+        # If it's not an int, we are going to pass it as the map directly
+        else:
+            try:
+                toolbox.register("map", self.n_jobs)
+            except:
+                raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(self.n_jobs)))
 
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
@@ -434,6 +458,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Check memoization, potentially unknown bug
         assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
+
+        # Close your pools if you made them
+        if isinstance(self.n_jobs, int) and (self.n_jobs > 1 or self.n_jobs < 0):
+            pool.close()
+            pool.join()
 
         self.best_score_ = current_best_score_
         self.best_params_ = current_best_params_
