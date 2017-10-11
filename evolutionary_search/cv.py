@@ -173,6 +173,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         parameter in range [ind1_parameter, ind2_parameter]. Of course it is correct only
         when parameters of some value is sorted.
 
+    n_hall_of_fame : int, default=1
+        Number of individuals to retain in the hall of fame.
+
     n_jobs : int, default=1
         Number of jobs to run in parallel.
 
@@ -246,7 +249,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                                            gene_mutation_prob=0.10,
                                            gene_crossover_prob=0.5,
                                            tournament_size=3,
-                                           generations_number=10)
+                                           generations_number=10,
+                                           n_hall_of_fame=5)
         cv.fit(X, y)
 
 
@@ -277,13 +281,16 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     all_logbooks_: list of the deap.tools.Logbook objects, indexed by params (len 1 if params is not a list).
        With the statistics of the evolution.
 
+    hall_of_fame: list of tuples
+        (score, parameters) for the best individuals.
+
     """
     def __init__(self, estimator, params, scoring=None, cv=4,
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
                  tournament_size=3, generations_number=10, gene_type=None,
-                 n_jobs=1, iid=True, pre_dispatch='2*n_jobs', error_score='raise',
-                 fit_params={}):
+                 n_hall_of_fame=1, n_jobs=1, iid=True, pre_dispatch='2*n_jobs',
+                 error_score='raise', fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring, fit_params=fit_params,
             n_jobs=n_jobs, iid=iid, refit=refit, cv=cv, verbose=verbose,
@@ -296,6 +303,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_crossover_prob = gene_crossover_prob
         self.tournament_size = tournament_size
         self.gene_type = gene_type
+        self.n_hall_of_fame = n_hall_of_fame
+        self.hall_of_fame = None
         self.all_history_, self.all_logbooks_ = [], []
         self._cv_results = None
         self.best_score_ = None
@@ -404,7 +413,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
 
         pop = toolbox.population(n=self.population_size)
-        hof = tools.HallOfFame(1)
+        hof = tools.HallOfFame(self.n_hall_of_fame)
 
         # Stats
         stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -429,8 +438,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         # Save History
         self.all_history_.append(hist)
         self.all_logbooks_.append(logbook)
-        current_best_score_ = hof[0].fitness.values[0]
-        current_best_params_ = _individual_to_params(hof[0], name_values)
+
+        def get_best_score_and_params(ind):
+            return ind.fitness.values[0], _individual_to_params(ind, name_values)
+        current_best_score_, current_best_params_ = get_best_score_and_params(hof[0])
         if self.verbose:
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_))
@@ -448,3 +459,5 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         self.best_score_ = current_best_score_
         self.best_params_ = current_best_params_
+
+        self.hall_of_fame = list(map(get_best_score_and_params, hof))
