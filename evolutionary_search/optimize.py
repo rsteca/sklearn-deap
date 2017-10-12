@@ -25,7 +25,7 @@ def _evalFunction(func, individual, name_values, verbose=0, error_score='raise',
 def maximize(func, parameter_dict, args={},
             verbose=False, population_size=50,
             gene_mutation_prob=0.1, gene_crossover_prob=0.5,
-            tournament_size=3, generations_number=10, gene_type=None,
+            tournament_size=3, generations_number=10, gene_type=None, n_hall_of_fame=1,
             n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
     """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize.
 
@@ -45,6 +45,11 @@ def maximize(func, parameter_dict, args={},
 
         logbook: deap.tools.Logbook object.
             Includes the statistics of the evolution.
+
+        archive: dict
+            n_hall_of_fame: list of tuples
+                (score, parameters) for the best individuals.
+
     """
 
     _check_param_grid(parameter_dict)
@@ -75,7 +80,7 @@ def maximize(func, parameter_dict, args={},
 
     # Tools
     pop = toolbox.population(n=population_size)
-    hof = tools.HallOfFame(1)
+    hof = tools.HallOfFame(n_hall_of_fame)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.nanmean)
     stats.register("min", np.nanmin)
@@ -95,8 +100,9 @@ def maximize(func, parameter_dict, args={},
                                        ngen=generations_number, stats=stats,
                                        halloffame=hof, verbose=verbose)
 
-    current_best_score_ = hof[0].fitness.values[0]
-    current_best_params_ = _individual_to_params(hof[0], name_values)
+    def get_best_score_and_params(ind):
+        return ind.fitness.values[0], _individual_to_params(ind, name_values)
+    current_best_score_, current_best_params_ = get_best_score_and_params(hof[0])
 
     # Generate score_cache with real parameters
     _, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
@@ -114,4 +120,6 @@ def maximize(func, parameter_dict, args={},
         pool.close()
         pool.join()
 
-    return current_best_params_, current_best_score_, score_results, hist, logbook
+    hall_of_fame = list(map(get_best_score_and_params, hof))
+
+    return current_best_params_, current_best_score_, score_results, hist, logbook, {'hall_of_fame': hall_of_fame}
