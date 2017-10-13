@@ -56,11 +56,7 @@ def maximize(func, parameter_dict, args={},
     """
 
     _check_param_grid(parameter_dict)
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", list, fitness=creator.FitnessMax)
-
-    toolbox = base.Toolbox()
-
+        
     # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
     # many jobs as possible) then we are going to create a default pool.
     # Windows users need to be warned of this feature as it only works properly
@@ -77,6 +73,10 @@ def maximize(func, parameter_dict, args={},
                                "that all code is working as expected."))
             pool = Pool(n_jobs)
             toolbox.register("map", pool.map)
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create("Individual", list, fitness=creator.FitnessMax)
+
+    toolbox = base.Toolbox()
 
     # If it's not an int, we are going to pass it as the map directly
     else:
