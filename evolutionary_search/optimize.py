@@ -23,6 +23,9 @@ def _evalFunction(func, individual, name_values, verbose=0, error_score='raise',
 
     return (score,)
 
+def compile():
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    creator.create("Individual", list, fitness=creator.FitnessMax)
 
 def maximize(func, parameter_dict, args={},
              verbose=False, population_size=50,
@@ -73,8 +76,9 @@ def maximize(func, parameter_dict, args={},
                                "that all code is working as expected."))
             pool = Pool(n_jobs)
             toolbox.register("map", pool.map)
-        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", list, fitness=creator.FitnessMax)
+            warnings.warn("Need to create a creator. Run optimize.compile()")
+        else:
+            compile()
 
     toolbox = base.Toolbox()
 
