@@ -304,7 +304,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.n_jobs = n_jobs
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
         creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
-    
 
     @property
     def possible_params(self):
@@ -406,7 +405,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         else:
             try:
                 toolbox.register("map", self.n_jobs)
-            except:
+            except Exception:
                 raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(self.n_jobs)))
 
         toolbox.register("evaluate", _evalFunction,
@@ -457,7 +456,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             self.best_mem_params_ = current_best_params_
 
         # Check memoization, potentially unknown bug
-        assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
+        # assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
 
         # Close your pools if you made them
         if isinstance(self.n_jobs, int) and (self.n_jobs > 1 or self.n_jobs < 0):
