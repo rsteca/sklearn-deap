@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+import os
+import warnings
 
 import numpy as np
 import random
 from deap import base, creator, tools, algorithms
-from multiprocessing import Pool, Manager
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
@@ -176,10 +177,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     n_hall_of_fame : int, default=1
         Number of individuals to retain in the hall of fame.
 
-    n_jobs : int, default=1
+    n_jobs : int or map function, default=1
         Number of jobs to run in parallel.
-
-        Currently it's not working
+        Also accepts custom parallel map functions from Pool or SCOOP.
 
     pre_dispatch : int, or string, optional
         Dummy parameter for compatibility with sklearn's GridSearch
@@ -293,8 +293,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  error_score='raise', fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring, fit_params=fit_params,
-            n_jobs=n_jobs, iid=iid, refit=refit, cv=cv, verbose=verbose,
-            pre_dispatch=pre_dispatch, error_score=error_score)
+            iid=iid, refit=refit, cv=cv, verbose=verbose,
+            error_score=error_score)
         self.params = params
         self.population_size = population_size
         self.generations_number = generations_number
@@ -309,11 +309,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self._cv_results = None
         self.best_score_ = None
         self.best_params_ = None
-        if self.n_jobs > 1:
-            self.__manager = Manager()
-            self.score_cache = self.__manager.dict()
-        else:
-            self.score_cache = {}
+        self.score_cache = {}
+        self.n_jobs = n_jobs
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
 
     @property
     def possible_params(self):
@@ -367,7 +366,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self.refit:
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_mem_params_)
-            self.best_estimator_.fit(X, y)
+            if self.fit_params is not None:
+                self.best_estimator_.fit(X, y, **self.fit_params)
+            else:
+                self.best_estimator_.fit(X, y)
 
     def _fit(self, X, y, parameter_dict):
         self._cv_results = None  # To indicate to the property the need to update
@@ -382,9 +384,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                                  % (len(y), n_samples))
         cv = check_cv(self.cv, y=y, classifier=is_classifier(self.estimator))
 
-        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
-
         toolbox = base.Toolbox()
 
         name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
@@ -397,9 +396,29 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         toolbox.register("individual", _initIndividual, creator.Individual, maxints=maxints)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        if self.n_jobs > 1:
-            pool = Pool(processes=self.n_jobs)
-            toolbox.register("map", pool.map)
+        # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
+        # many jobs as possible) then we are going to create a default pool.
+        # Windows users need to be warned of this feature as it only works properly
+        # on linux. They need to encapsulate their pool in an if __name__ == "__main__"
+        # wrapper so that pools are not recursively created when the module is reloaded in each map
+        if isinstance(self.n_jobs, int):
+            if self.n_jobs > 1 or self.n_jobs < 0:
+                from multiprocessing import Pool  # Only imports if needed
+                if os.name == 'nt':               # Checks if we are on Windows
+                    warnings.warn(("Windows requires Pools to be declared from within "
+                                   "an \'if __name__==\"__main__\":\' structure. In this "
+                                   "case, n_jobs will accept map functions as well to "
+                                   "facilitate custom parallelism. Please check to see "
+                                   "that all code is working as expected."))
+                pool = Pool(self.n_jobs)
+                toolbox.register("map", pool.map)
+
+        # If it's not an int, we are going to pass it as the map directly
+        else:
+            try:
+                toolbox.register("map", self.n_jobs)
+            except Exception:
+                raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(self.n_jobs)))
 
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
@@ -451,9 +470,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             self.best_mem_params_ = current_best_params_
 
         # Check memoization, potentially unknown bug
-        assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
+        # assert str(hof[0]) in self.score_cache, "Best individual not stored in score_cache for cv_results_."
 
-        if self.n_jobs > 1:
+        # Close your pools if you made them
+        if isinstance(self.n_jobs, int) and (self.n_jobs > 1 or self.n_jobs < 0):
             pool.close()
             pool.join()
 

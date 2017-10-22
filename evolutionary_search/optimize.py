@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from deap import base, creator, tools, algorithms
-from multiprocessing import Pool
 from sklearn.model_selection._search import _check_param_grid
-
 from .cv import _get_param_types_maxint, _initIndividual, _cxIndividual, _mutIndividual, _individual_to_params
+import warnings
+import os
+
 
 def _evalFunction(func, individual, name_values, verbose=0, error_score='raise', args={}):
     parameters = _individual_to_params(individual, name_values)
@@ -17,10 +18,14 @@ def _evalFunction(func, individual, name_values, verbose=0, error_score='raise',
     else:
         try:
             score = func(**_parameters)
-        except:
+        except Exception:
             score = error_score
 
     return (score,)
+
+def compile():
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    creator.create("Individual", list, fitness=creator.FitnessMax)
 
 def maximize(func, parameter_dict, args={},
             verbose=False, population_size=50,
@@ -28,6 +33,12 @@ def maximize(func, parameter_dict, args={},
             tournament_size=3, generations_number=10, gene_type=None, n_hall_of_fame=1,
             n_jobs=1, pre_dispatch='2*n_jobs', error_score='raise'):
     """ Same as _fit in EvolutionarySearchCV but without fitting data. More similar to scipy.optimize.
+
+        Parameters
+        ------------------
+        n_jobs : int or map function, default=1
+            Number of jobs to run in parallel.
+            Also accepts custom parallel map functions from Pool or SCOOP.
 
         Returns
         ------------------
@@ -52,14 +63,36 @@ def maximize(func, parameter_dict, args={},
 
     """
 
-    _check_param_grid(parameter_dict)
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", list, fitness=creator.FitnessMax)
-
     toolbox = base.Toolbox()
-    if n_jobs > 1:
-        pool = Pool(processes=n_jobs)
-        toolbox.register("map", pool.map)
+
+    _check_param_grid(parameter_dict)
+    if isinstance(n_jobs, int):
+        # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
+        # many jobs as possible) then we are going to create a default pool.
+        # Windows users need to be warned of this feature as it only works properly
+        # on linux. They need to encapsulate their pool in an if __name__ == "__main__"
+        # wrapper so that pools are not recursively created when the module is reloaded in each map
+        if isinstance(n_jobs, (int, float)):
+            if n_jobs > 1 or n_jobs < 0:
+                from multiprocessing import Pool  # Only imports if needed
+                if os.name == 'nt':               # Checks if we are on Windows
+                    warnings.warn(("Windows requires Pools to be declared from within "
+                                   "an \'if __name__==\"__main__\":\' structure. In this "
+                                   "case, n_jobs will accept map functions as well to "
+                                   "facilitate custom parallelism. Please check to see "
+                                   "that all code is working as expected."))
+                pool = Pool(n_jobs)
+                toolbox.register("map", pool.map)
+                warnings.warn("Need to create a creator. Run optimize.compile()")
+            else:
+                compile()
+
+    # If it's not an int, we are going to pass it as the map directly
+    else:
+        try:
+            toolbox.register("map", n_jobs)
+        except Exception:
+            raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(n_jobs)))
 
     name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
 
@@ -106,17 +139,18 @@ def maximize(func, parameter_dict, args={},
 
     # Generate score_cache with real parameters
     _, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                    for idx, indiv in list(hist.genealogy_history.items())
-                                    if indiv.fitness.valid and not np.all(np.isnan(indiv.fitness.values))])
+                                        for idx, indiv in list(hist.genealogy_history.items())
+                                        if indiv.fitness.valid and not np.all(np.isnan(indiv.fitness.values))])
     unique_individuals = {str(indiv): (indiv, score) for indiv, score in zip(individuals, each_scores)}
     score_results = tuple([(_individual_to_params(indiv, name_values), score)
-                         for indiv, score in unique_individuals.values()])
+                           for indiv, score in unique_individuals.values()])
 
     if verbose:
         print("Best individual is: %s\nwith fitness: %s" % (
             current_best_params_, current_best_score_))
 
-    if n_jobs > 1:
+    # Close your pools if you made them
+    if isinstance(n_jobs, int) and (n_jobs > 1 or n_jobs < 0):
         pool.close()
         pool.join()
 
