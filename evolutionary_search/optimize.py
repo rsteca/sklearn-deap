@@ -18,7 +18,7 @@ def _evalFunction(func, individual, name_values, verbose=0, error_score='raise',
     else:
         try:
             score = func(**_parameters)
-        except:
+        except Exception:
             score = error_score
 
     return (score,)
@@ -58,35 +58,35 @@ def maximize(func, parameter_dict, args={},
             Includes the statistics of the evolution.
     """
 
-    _check_param_grid(parameter_dict)
-        
-    # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
-    # many jobs as possible) then we are going to create a default pool.
-    # Windows users need to be warned of this feature as it only works properly
-    # on linux. They need to encapsulate their pool in an if __name__ == "__main__"
-    # wrapper so that pools are not recursively created when the module is reloaded in each map
-    if isinstance(n_jobs, (int, float)):
-        if n_jobs > 1 or n_jobs < 0:
-            from multiprocessing import Pool  # Only imports if needed
-            if os.name == 'nt':               # Checks if we are on Windows
-                warnings.warn(("Windows requires Pools to be declared from within "
-                               "an \'if __name__==\"__main__\":\' structure. In this "
-                               "case, n_jobs will accept map functions as well to "
-                               "facilitate custom parallelism. Please check to see "
-                               "that all code is working as expected."))
-            pool = Pool(n_jobs)
-            toolbox.register("map", pool.map)
-            warnings.warn("Need to create a creator. Run optimize.compile()")
-        else:
-            compile()
-
     toolbox = base.Toolbox()
+
+    _check_param_grid(parameter_dict)
+    if isinstance(n_jobs, int):
+        # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
+        # many jobs as possible) then we are going to create a default pool.
+        # Windows users need to be warned of this feature as it only works properly
+        # on linux. They need to encapsulate their pool in an if __name__ == "__main__"
+        # wrapper so that pools are not recursively created when the module is reloaded in each map
+        if isinstance(n_jobs, (int, float)):
+            if n_jobs > 1 or n_jobs < 0:
+                from multiprocessing import Pool  # Only imports if needed
+                if os.name == 'nt':               # Checks if we are on Windows
+                    warnings.warn(("Windows requires Pools to be declared from within "
+                                   "an \'if __name__==\"__main__\":\' structure. In this "
+                                   "case, n_jobs will accept map functions as well to "
+                                   "facilitate custom parallelism. Please check to see "
+                                   "that all code is working as expected."))
+                pool = Pool(n_jobs)
+                toolbox.register("map", pool.map)
+                warnings.warn("Need to create a creator. Run optimize.compile()")
+            else:
+                compile()
 
     # If it's not an int, we are going to pass it as the map directly
     else:
         try:
             toolbox.register("map", n_jobs)
-        except:
+        except Exception:
             raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(n_jobs)))
 
     name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
