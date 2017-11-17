@@ -302,9 +302,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.best_params_ = None
         self.score_cache = {}
         self.n_jobs = n_jobs
-        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
-    
+        if "FitnessMax" not in creator.__dict__:
+            creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        if "Individual" not in creator.__dict__:
+            creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
+
 
     @property
     def possible_params(self):
