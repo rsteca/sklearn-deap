@@ -81,7 +81,7 @@ def func(x, y, m=1., z=False):
 
 param_grid = {'x': [-1., 0., 1.], 'y': [-1., 0., 1.], 'z': [True, False]}
 args = {'m': 1.}
-best_params, best_score, score_results = maximize(func, param_grid, args, verbose=False)
+best_params, best_score, score_results, _, _ = maximize(func, param_grid, args, verbose=False)
 ```
 
 Output:
