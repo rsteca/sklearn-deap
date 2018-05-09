@@ -216,6 +216,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         FitFailedWarning is raised. This parameter does not affect the refit
         step, which will always raise the error.
 
+    maximize : boolean, default=True
+        If True, maximize the scoring function result. Otherwise, minimize
+        the scoring function result.
+
 
     Examples
     --------
@@ -283,7 +287,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
                  tournament_size=3, generations_number=10, gene_type=None,
                  n_jobs=1, iid=True, error_score='raise',
-                 fit_params={}):
+                 fit_params={}, maximize=True):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring, fit_params=fit_params,
             iid=iid, refit=refit, cv=cv, verbose=verbose,
@@ -302,7 +306,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.best_params_ = None
         self.score_cache = {}
         self.n_jobs = n_jobs
-        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        if maximize:
+            weights = (1.0,)
+        else:
+            weights = (-1.0,)
+        creator.create("FitnessMax", base.Fitness, weights=weights)
         creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
 
     @property
