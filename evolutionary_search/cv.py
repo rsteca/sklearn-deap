@@ -306,12 +306,16 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.best_params_ = None
         self.score_cache = {}
         self.n_jobs = n_jobs
+        self.maximize = maximize
         if maximize:
             weights = (1.0,)
+            fitness_name = "FitnessMax"
         else:
             weights = (-1.0,)
-        creator.create("FitnessMax", base.Fitness, weights=weights)
-        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
+            fitness_name = "FitnessMin"
+        creator.create(fitness_name, base.Fitness, weights=weights)
+        creator.create("Individual", list, est=clone(self.estimator),
+                       fitness=getattr(creator, fitness_name))
 
     @property
     def possible_params(self):
@@ -357,7 +361,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
     def fit(self, X, y=None):
         self.best_estimator_ = None
-        self.best_mem_score_ = float("-inf")
+        if self.maximize:
+            self.best_mem_score_ = float("-inf")
+        else:
+            self.best_mem_score_ = float("inf")
         self.best_mem_params_ = None
         for possible_params in self.possible_params:
             _check_param_grid(possible_params)
@@ -462,7 +469,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             print("Best individual is: %s\nwith fitness: %s" % (
                 current_best_params_, current_best_score_))
 
-        if current_best_score_ > self.best_mem_score_:
+        if ((self.maximize and (current_best_score_ > self.best_mem_score_)) or
+            (not self.maximize and (current_best_score_ < self.best_mem_score_))):
             self.best_mem_score_ = current_best_score_
             self.best_mem_params_ = current_best_params_
 
@@ -476,3 +484,4 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         self.best_score_ = current_best_score_
         self.best_params_ = current_best_params_
+
