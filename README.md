@@ -18,11 +18,16 @@ or clone the repo and just type the following on your shell:
     python setup.py install
 
 
-Recreating the sklearn [classifier comparison plot](http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html) with no prior hyper-parameter knowledge:
+Recreating the sklearn [classifier comparison plot](http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html) with no prior hyper-parameter knowledge. The average fitness of the GA is shown below each plot for 50 generations in orange. The best fitness of the GA is shown in blue. 
 
 ![img](https://github.com/flipdazed/sklearn-deap/blob/master/example/all_classifiers.png)
 
 This example code can be found in `/example` and demonstrates tuned hyper-parameters can easily be found for a variety of algorithms.
+
+We can compare to the [original classifier comparison](http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html) and see that there is generally an improvement in accuracy
+
+![img](http://scikit-learn.org/stable/_images/sphx_glr_plot_classifier_comparison_001.png)
+
 
 Usage examples
 --------------
