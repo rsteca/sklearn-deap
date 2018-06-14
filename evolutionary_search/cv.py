@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 import random
 from deap import base, creator, tools, algorithms
+from deap import cma
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
@@ -99,10 +100,13 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     else:
         for train, test in cv.split(X, y):
             assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
-            _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
-                                    train=train, test=test, verbose=verbose,
-                                    parameters=parameters, fit_params=fit_params,
-                                    error_score=error_score)[0]
+            try:
+                _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
+                                        train=train, test=test, verbose=verbose,
+                                        parameters=parameters, fit_params=fit_params,
+                                        error_score=error_score)[0]
+            except:
+                return (-np.inf,)
 
             if iid:
                 score += _score * len(test)
@@ -303,10 +307,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self._cv_results = None
         self.score_cache = {}
         self.n_jobs = n_jobs
-        if "FitnessMax" not in creator.__dict__:
-            creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        if "Individual" not in creator.__dict__:
-            creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
+        # if "FitnessMax" not in creator.__dict__:
+        creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        # if "Individual" not in creator.__dict__:
+        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
 
     @property
     def possible_params(self):
@@ -432,10 +436,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Stats
         stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.nanmean)
-        stats.register("min", np.nanmin)
-        stats.register("max", np.nanmax)
-        stats.register("std", np.nanstd)
+        stats.register("avg", lambda x: np.ma.masked_invalid(x).mean())
+        stats.register("min", lambda x: np.ma.masked_invalid(x).min())
+        stats.register("max", lambda x: np.ma.masked_invalid(x).max())
+        stats.register("std", lambda x: np.ma.masked_invalid(x).std())
 
         # History
         hist = tools.History()
