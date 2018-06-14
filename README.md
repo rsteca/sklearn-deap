@@ -17,10 +17,15 @@ or clone the repo and just type the following on your shell:
 
     python setup.py install
 
+
+Recreating the sklearn [classifier comparison plot][http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html] with no prior hyper-parameter knowledge:
+
+![img][https://github.com/flipdazed/sklearn-deap/blob/master/example/all_classifiers.png]
+
+This example code can be found in `/example` and demonstrates tuned hyper-parameters can easily be found for a variety of algorithms.
+
 Usage examples
 --------------
-
-
 
 Example of usage:
 
