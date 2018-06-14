@@ -6,12 +6,14 @@ import warnings
 import numpy as np
 import random
 from deap import base, creator, tools, algorithms
+from deap import cma
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
 from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param_grid
 from sklearn.metrics.scorer import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
+
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -98,10 +100,13 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
     else:
         for train, test in cv.split(X, y):
             assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
-            _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
-                                    train=train, test=test, verbose=verbose,
-                                    parameters=parameters, fit_params=fit_params,
-                                    error_score=error_score)[0]
+            try:
+                _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
+                                        train=train, test=test, verbose=verbose,
+                                        parameters=parameters, fit_params=fit_params,
+                                        error_score=error_score)[0]
+            except:
+                return (-np.inf,)
 
             if iid:
                 score += _score * len(test)
@@ -278,6 +283,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
        With the statistics of the evolution.
 
     """
+    best_score_ = None
+    best_params_ = None
     def __init__(self, estimator, params, scoring=None, cv=4,
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
@@ -298,11 +305,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.gene_type = gene_type
         self.all_history_, self.all_logbooks_ = [], []
         self._cv_results = None
-        self.best_score_ = None
-        self.best_params_ = None
         self.score_cache = {}
         self.n_jobs = n_jobs
+        # if "FitnessMax" not in creator.__dict__:
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+        # if "Individual" not in creator.__dict__:
         creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
 
     @property
@@ -358,9 +365,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             self.best_estimator_ = clone(self.estimator)
             self.best_estimator_.set_params(**self.best_mem_params_)
             if self.fit_params is not None:
+
                 self.best_estimator_.fit(X, y, **self.fit_params)
             else:
                 self.best_estimator_.fit(X, y)
+        return self
 
     def _fit(self, X, y, parameter_dict):
         self._cv_results = None  # To indicate to the property the need to update
@@ -394,16 +403,16 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         # wrapper so that pools are not recursively created when the module is reloaded in each map
         if isinstance(self.n_jobs, int):
             if self.n_jobs > 1 or self.n_jobs < 0:
-                from multiprocessing import Pool  # Only imports if needed
-                if os.name == 'nt':               # Checks if we are on Windows
-                    warnings.warn(("Windows requires Pools to be declared from within "
-                                   "an \'if __name__==\"__main__\":\' structure. In this "
-                                   "case, n_jobs will accept map functions as well to "
-                                   "facilitate custom parallelism. Please check to see "
-                                   "that all code is working as expected."))
-                pool = Pool(self.n_jobs)
-                toolbox.register("map", pool.map)
-
+                if __name__ == '__main__':
+                    from multiprocessing import Pool  # Only imports if needed
+                    if os.name == 'nt':               # Checks if we are on Windows
+                        warnings.warn(("Windows requires Pools to be declared from within "
+                                       "an \'if __name__==\"__main__\":\' structure. In this "
+                                       "case, n_jobs will accept map functions as well to "
+                                       "facilitate custom parallelism. Please check to see "
+                                       "that all code is working as expected."))
+                    pool = Pool(self.n_jobs)
+                    toolbox.register("map", pool.map)
         # If it's not an int, we are going to pass it as the map directly
         else:
             try:
@@ -427,10 +436,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Stats
         stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.nanmean)
-        stats.register("min", np.nanmin)
-        stats.register("max", np.nanmax)
-        stats.register("std", np.nanstd)
+        stats.register("avg", lambda x: np.ma.masked_invalid(x).mean())
+        stats.register("min", lambda x: np.ma.masked_invalid(x).min())
+        stats.register("max", lambda x: np.ma.masked_invalid(x).max())
+        stats.register("std", lambda x: np.ma.masked_invalid(x).std())
 
         # History
         hist = tools.History()
@@ -463,8 +472,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         # Close your pools if you made them
         if isinstance(self.n_jobs, int) and (self.n_jobs > 1 or self.n_jobs < 0):
-            pool.close()
-            pool.join()
+            if __name__ == '__main__':
+                pool.close()
+                pool.join()
 
         self.best_score_ = current_best_score_
         self.best_params_ = current_best_params_
