@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import datasets
 from sklearn.svm import SVC
+from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
 from evolutionary_search import EvolutionaryAlgorithmSearchCV
 
@@ -37,7 +38,7 @@ def plot_contours(ax, clf, xx, yy, **params):
     yy: meshgrid ndarray
     params: dictionary of params to pass to contourf, optional
     """
-    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
     out = ax.contourf(xx, yy, Z, **params)
     plt.draw()
@@ -84,20 +85,24 @@ if __name__ == '__main__':
     models = list(clf.fit(x_train, y_train.ravel()) for clf in models)
 
     # title for the plots
-    titles = ('RBF kernel','linear kernel', 'Naiive RBF', 'Naiive Linear')# 'Poly Kernel')
+    titles = ('RBF (GA-trained)','Linear (GA-trained)', 'Naiive RBF', 'Naiive Linear')# 'Poly Kernel')
+
+    X0, X1 = iris.data[:, 0], iris.data[:, 1]
+    xx, yy = make_meshgrid(X0, X1)
 
     # Set-up 2x2 grid for plotting.
     fig, sub = plt.subplots(2,2)
     plt.subplots_adjust(wspace=0.4, hspace=0.4)
     plt.ion()
 
-    X0, X1 = iris.data[:, 0], iris.data[:, 1]
-    xx, yy = make_meshgrid(X0, X1)
+    cm = plt.cm.RdBu
 
     for clf, title, ax in zip(models, titles, sub.flatten()):
-        plot_contours(ax, clf, xx, yy, cmap=plt.cm.coolwarm, alpha=0.4)
-        ax.scatter(x_train[:, 0], x_train[:, 1], c=y_train.ravel(), cmap=plt.cm.coolwarm, s=20, edgecolors='grey', alpha=0.7)
-        ax.scatter(x_test[:, 0], x_test[:, 1], c=y_test.ravel(), cmap=plt.cm.coolwarm, s=20, edgecolors='black', alpha=1)
+        plot_contours(ax, clf, xx, yy, cmap=plt.cm.RdBu, alpha=0.4)
+        ax.scatter(x_train[:, 0], x_train[:, 1], c=y_train.ravel(), cmap=plt.cm.RdBu, s=20,
+                   edgecolors='grey', alpha=0.7)
+        ax.scatter(x_test[:, 0], x_test[:, 1], c=y_test.ravel(), cmap=plt.cm.RdBu, s=20,
+                   edgecolors='black', alpha=1)
         ax.set_xlim(xx.min(), xx.max())
         ax.set_ylim(yy.min(), yy.max())
         ax.set_xlabel('Sepal length')
@@ -105,5 +110,18 @@ if __name__ == '__main__':
         ax.set_xticks(())
         ax.set_yticks(())
         ax.set_title(title)
+
+        score = clf.score(x_test, y_test)
+        
+        if hasattr(clf, 'best_score_'):
+            v_score = ('%.2f' % clf.best_score_).lstrip('0')
+        else:
+            v_score = 'na'
+
+        if ax is sub.flatten()[-1]:
+            text = 'Valid|Test\n{}|{}'.format(v_score, ('%.2f' % score).lstrip('0'))
+        else:
+            text = '{}|{}'.format(v_score, ('%.2f' % score).lstrip('0'))
+        ax.add_artist(AnchoredText(text, loc=4, prop={'size':10}))
 
     plt.show()
