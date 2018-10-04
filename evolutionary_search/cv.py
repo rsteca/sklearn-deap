@@ -278,6 +278,13 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
        With the statistics of the evolution.
 
     """
+
+    def _run_search(self, evaluate_candidates):
+        """
+            scikit-learn new version introduce a new abstract function hence we have to implement an anonymous function
+        """
+        pass
+
     def __init__(self, estimator, params, scoring=None, cv=4,
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
