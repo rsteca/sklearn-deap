@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 import unittest
 import random
 
+
 def func(x, y, m=1., z=False):
     return m * (np.exp(-(x**2 + y**2)) + float(z))
 
@@ -33,6 +34,7 @@ def readme():
     cv.fit(X, y)
     return cv
 
+
 class TestEvolutionarySearch(unittest.TestCase):
 
     def test_cv(self):
@@ -43,7 +45,7 @@ class TestEvolutionarySearch(unittest.TestCase):
             self.assertIsNotNone(cv_results_, msg="cv_results is None.")
             self.assertNotEqual(cv_results_, {}, msg="cv_results is empty.")
             self.assertAlmostEqual(cv.best_score_, 1., delta=.05,
-                msg="Did not find the best score. Returned: {}".format(cv.best_score_))
+                                   msg="Did not find the best score. Returned: {}".format(cv.best_score_))
 
         try_with_params()
 
@@ -53,10 +55,15 @@ class TestEvolutionarySearch(unittest.TestCase):
         param_grid = {'x': [-1., 0., 1.], 'y': [-1., 0., 1.], 'z': [True, False]}
         args = {'m': 1.}
 
-        best_params, best_score, score_results, _, _ = maximize(func, param_grid, args, verbose=True)
-        print("Score Results:\n{}".format(score_results))
-        self.assertEqual(best_params, {'x': 0., 'y': 0., 'z': True})
-        self.assertEqual(best_score, 2.)
+        def try_with_params(**max_args):
+            best_params, best_score, score_results, history, logbook, archive = maximize(func, param_grid,
+                                                                                         args, verbose=True, **max_args)
+            print("Score Results:\n{}".format(score_results))
+            self.assertEqual(best_params, {'x': 0., 'y': 0., 'z': True})
+            self.assertEqual(best_score, 2.)
+
+        try_with_params(n_jobs=1)
+        try_with_params(n_jobs=4)
 
 if __name__ == "__main__":
     unittest.main()
