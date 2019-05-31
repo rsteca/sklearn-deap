@@ -148,19 +148,24 @@ fit_params = {
                 keras.callbacks.ModelCheckpoint(model_filename,
                                                 save_best_only=True)]
     }
-    search = EvolutionaryAlgorithmSearchCV(estimator=model,
-                                            params=params,
-                                            scoring="accuracy",
-                                            cv=cv,
-                                            verbose=0,
-                                            population_size=50,
-                                            gene_mutation_prob=0.10,
-                                            gene_crossover_prob=0.5,
-                                            tournament_size=3,
-                                            generations_number=5,
-                                            fit_params=fit_params)
+params = {
+        "n_hidden": [2, 3],
+        "n_neurons": np.arange(10, 500),
+        "learning_rate": [0.001, 0.025, 0.03]
+    }
+search = EvolutionaryAlgorithmSearchCV(estimator=model,
+                                        params=params,
+                                        scoring="accuracy",
+                                        cv=cv,
+                                        verbose=0,
+                                        population_size=50,
+                                        gene_mutation_prob=0.10,
+                                        gene_crossover_prob=0.5,
+                                        tournament_size=3,
+                                        generations_number=5,
+                                        fit_params=fit_params)
 
-    search.fit(X_train, y_train)
-    print(f"Best score found is: {search.best_score_}")
-    print(f"Best params are: {search.best_params_}")
+search.fit(X_train, y_train)
+print(f"Best score found is: {search.best_score_}")
+print(f"Best params are: {search.best_params_}")
 ```
