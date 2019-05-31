@@ -25,9 +25,9 @@ setup(
     package_dir={'': '.'},
     packages=find_packages('.'),
     install_requires=[
-        'numpy>=1.9.3',
-        'scipy>=0.16.0',
-        'deap>=1.0.2',
+        'numpy>=1.16.4',
+        'scipy>=1.3.0',
+        'deap>=1.2.2',
         'scikit-learn>=0.18.0',
     ],
 )

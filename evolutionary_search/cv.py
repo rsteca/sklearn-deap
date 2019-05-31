@@ -13,6 +13,7 @@ from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param
 from sklearn.metrics.scorer import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
+
 def enum(**enums):
     return type('Enum', (), enums)
 
@@ -97,7 +98,8 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
         score = score_cache[paramkey]
     else:
         for train, test in cv.split(X, y):
-            assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
+            assert len(train) > 0 and len(
+                test) > 0, "Training and/or testing not long enough for evaluation."
             _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                     train=train, test=test, verbose=verbose,
                                     parameters=parameters, fit_params=fit_params,
@@ -311,7 +313,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.n_jobs = n_jobs
         self.fit_params = fit_params
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
+        creator.create("Individual", list, est=clone(
+            self.estimator), fitness=creator.FitnessMax)
 
     @property
     def possible_params(self):
@@ -323,15 +326,16 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self._cv_results is None:  # This is to cache the answer until updated
             # Populate output and return
             # If not already fit, returns an empty dictionary
-            possible_params = self.possible_params  # Pre-load property for use in this function
+            # Pre-load property for use in this function
+            possible_params = self.possible_params
             out = defaultdict(list)
             for p, gen in enumerate(self.all_history_):
                 # Get individuals and indexes, their list of scores,
                 # and additionally the name_values for this set of parameters
 
                 idxs, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                                for idx, indiv in list(gen.genealogy_history.items())
-                                                if indiv.fitness.valid and not np.all(np.isnan(indiv.fitness.values))])
+                                                       for idx, indiv in list(gen.genealogy_history.items())
+                                                       if indiv.fitness.valid and not np.all(np.isnan(indiv.fitness.values))])
 
                 name_values, _, _ = _get_param_types_maxint(possible_params[p])
 
@@ -339,12 +343,17 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                 out['param_index'] += [p] * len(idxs)
                 out['index'] += idxs
                 out['params'] += [_individual_to_params(indiv, name_values)
-                                for indiv in individuals]
-                out['mean_test_score'] += [np.nanmean(scores) for scores in each_scores]
-                out['std_test_score'] += [np.nanstd(scores) for scores in each_scores]
-                out['min_test_score'] += [np.nanmin(scores) for scores in each_scores]
-                out['max_test_score'] += [np.nanmax(scores) for scores in each_scores]
-                out['nan_test_score?'] += [np.any(np.isnan(scores)) for scores in each_scores]
+                                  for indiv in individuals]
+                out['mean_test_score'] += [np.nanmean(scores)
+                                           for scores in each_scores]
+                out['std_test_score'] += [np.nanstd(scores)
+                                          for scores in each_scores]
+                out['min_test_score'] += [np.nanmin(scores)
+                                          for scores in each_scores]
+                out['max_test_score'] += [np.nanmax(scores)
+                                          for scores in each_scores]
+                out['nan_test_score?'] += [np.any(np.isnan(scores))
+                                           for scores in each_scores]
             self._cv_results = out
 
         return self._cv_results
@@ -385,15 +394,19 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         toolbox = base.Toolbox()
 
-        name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
+        name_values, gene_type, maxints = _get_param_types_maxint(
+            parameter_dict)
         if self.gene_type is None:
             self.gene_type = gene_type
 
         if self.verbose:
-            print("Types %s and maxint %s detected" % (self.gene_type, maxints))
+            print("Types %s and maxint %s detected" %
+                  (self.gene_type, maxints))
 
-        toolbox.register("individual", _initIndividual, creator.Individual, maxints=maxints)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+        toolbox.register("individual", _initIndividual,
+                         creator.Individual, maxints=maxints)
+        toolbox.register("population", tools.initRepeat,
+                         list, toolbox.individual)
 
         # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
         # many jobs as possible) then we are going to create a default pool.
@@ -417,7 +430,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             try:
                 toolbox.register("map", self.n_jobs)
             except Exception:
-                raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(self.n_jobs)))
+                raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(
+                    type(self.n_jobs)))
 
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
@@ -425,10 +439,13 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                          error_score=self.error_score, fit_params=self.fit_params,
                          score_cache=self.score_cache)
 
-        toolbox.register("mate", _cxIndividual, indpb=self.gene_crossover_prob, gene_type=self.gene_type)
+        toolbox.register("mate", _cxIndividual,
+                         indpb=self.gene_crossover_prob, gene_type=self.gene_type)
 
-        toolbox.register("mutate", _mutIndividual, indpb=self.gene_mutation_prob, up=maxints)
-        toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
+        toolbox.register("mutate", _mutIndividual,
+                         indpb=self.gene_mutation_prob, up=maxints)
+        toolbox.register("select", tools.selTournament,
+                         tournsize=self.tournament_size)
 
         pop = toolbox.population(n=self.population_size)
         hof = tools.HallOfFame(1)
@@ -447,7 +464,8 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         hist.update(pop)
 
         if self.verbose:
-            print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
+            print(
+                '--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
 
         pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
                                            ngen=self.generations_number, stats=stats,
