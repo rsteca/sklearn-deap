@@ -292,7 +292,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  n_jobs=1, iid=True, error_score='raise',
                  fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
-            estimator=estimator, scoring=scoring, fit_params=fit_params,
+            estimator=estimator, scoring=scoring,
             iid=iid, refit=refit, cv=cv, verbose=verbose,
             error_score=error_score)
         self.params = params
@@ -309,6 +309,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.best_params_ = None
         self.score_cache = {}
         self.n_jobs = n_jobs
+        self.fit_params = fit_params
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
         creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
 
