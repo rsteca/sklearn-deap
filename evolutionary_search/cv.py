@@ -289,7 +289,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
                  tournament_size=3, generations_number=10, gene_type=None,
-                 n_jobs=1, iid=True, error_score='raise',
+                 n_jobs=1, iid=True, error_score='raise', pre_dispatch=None,
                  fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring,
