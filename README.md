@@ -20,8 +20,6 @@ or clone the repo and just type the following on your shell:
 Usage examples
 --------------
 
-
-
 Example of usage:
 
 ```python
@@ -102,4 +100,72 @@ score_results = (({'x': 1.0, 'y': -1.0, 'z': True}, 1.1353352832366128),
  ({'x': 1.0, 'y': -1.0, 'z': False}, 1.1353352832366128),
  ({'x': 0.0, 'y': 0.0, 'z': True}, 2.0),
  ({'x': 0.0, 'y': -1.0, 'z': True}, 2.0))
+```
+
+Using Keras model 
+
+```python
+from evolutionary_search import EvolutionaryAlgorithmSearchCV
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+import random
+
+SEED = 13
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+random.seed(SEED)
+
+#...
+# LOAD YOUR DATA, PREPROCESS AND SPLIT IT
+# ...
+
+def build_model(n_hidden=1, n_neurons=30, learning_rate=0.05, input_shape=[9], activation="relu"):
+    model = keras.models.Sequential()
+    options = {"input_shape": input_shape}
+    for layer in range(n_hidden):
+        model.add(keras.layers.Dense(
+            n_neurons, activation=activation, **options))
+        options = {}
+
+    model.add(keras.layers.Dense(13, activation="softmax", **options))
+    s = 20 * len(X_train) // 32
+    learning_rate_fn = keras.optimizers.schedules.ExponentialDecay(
+        learning_rate, s, 0.1)
+    optimizer = keras.optimizers.SGD(learning_rate_fn)
+    model.compile(loss="sparse_categorical_crossentropy",
+                  optimizer=optimizer, metrics=["accuracy"])
+    return model
+
+# Create a keras wrapper for scikit-sklearn using the build_model function
+model = keras.wrappers.scikit_learn.KerasClassifier(build_model)
+
+# Extra params for fit method must be passed to __init__ in recent version of scikit-sklearn
+fit_params = {
+    "epochs": 300,
+    "validation_data": (X_valid, y_valid),
+    "callbacks": [keras.callbacks.EarlyStopping(patience=10),
+                keras.callbacks.ModelCheckpoint(model_filename,
+                                                save_best_only=True)]
+    }
+params = {
+        "n_hidden": [2, 3],
+        "n_neurons": np.arange(10, 500),
+        "learning_rate": [0.001, 0.025, 0.03]
+    }
+search = EvolutionaryAlgorithmSearchCV(estimator=model,
+                                        params=params,
+                                        scoring="accuracy",
+                                        cv=cv,
+                                        verbose=0,
+                                        population_size=50,
+                                        gene_mutation_prob=0.10,
+                                        gene_crossover_prob=0.5,
+                                        tournament_size=3,
+                                        generations_number=5,
+                                        fit_params=fit_params)
+
+search.fit(X_train, y_train)
+print(f"Best score found is: {search.best_score_}")
+print(f"Best params are: {search.best_params_}")
 ```
