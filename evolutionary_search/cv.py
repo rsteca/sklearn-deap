@@ -101,7 +101,7 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
             _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
                                     train=train, test=test, verbose=verbose,
                                     parameters=parameters, fit_params=fit_params,
-                                    error_score=error_score)[0]
+                                    error_score=error_score)['test_scores']
 
             if iid:
                 score += _score * len(test)
@@ -177,9 +177,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
     n_jobs : int or map function, default=1
         Number of jobs to run in parallel.
         Also accepts custom parallel map functions from Pool or SCOOP.
-
-    pre_dispatch : int, or string, optional
-        Dummy parameter for compatibility with sklearn's GridSearch
 
     iid : boolean, default=True
         If True, the data is assumed to be identically distributed across
@@ -295,6 +292,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             estimator=estimator, scoring=scoring,
             refit=refit, cv=cv, verbose=verbose,
             error_score=error_score)
+        self.iid = iid
         self.params = params
         self.population_size = population_size
         self.generations_number = generations_number
@@ -421,7 +419,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
-                         scorer=self.scorer_, cv=cv, iid=True, verbose=self.verbose,
+                         scorer=self.scorer_, cv=cv, iid=self.iid, verbose=self.verbose,
                          error_score=self.error_score, fit_params=self.fit_params,
                          score_cache=self.score_cache)
 
