@@ -10,7 +10,7 @@ from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
 from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param_grid
-from sklearn.metrics.scorer import check_scoring
+from sklearn.metrics import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
 def enum(**enums):
@@ -289,11 +289,11 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
                  refit=True, verbose=False, population_size=50,
                  gene_mutation_prob=0.1, gene_crossover_prob=0.5,
                  tournament_size=3, generations_number=10, gene_type=None,
-                 n_jobs=1, iid=True, error_score='raise', pre_dispatch=None,
+                 n_jobs=1, iid=True, error_score='raise',
                  fit_params={}):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
             estimator=estimator, scoring=scoring,
-            iid=iid, refit=refit, cv=cv, verbose=verbose,
+            refit=refit, cv=cv, verbose=verbose,
             error_score=error_score)
         self.params = params
         self.population_size = population_size
@@ -421,7 +421,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         toolbox.register("evaluate", _evalFunction,
                          name_values=name_values, X=X, y=y,
-                         scorer=self.scorer_, cv=cv, iid=self.iid, verbose=self.verbose,
+                         scorer=self.scorer_, cv=cv, iid=True, verbose=self.verbose,
                          error_score=self.error_score, fit_params=self.fit_params,
                          score_cache=self.score_cache)
 
