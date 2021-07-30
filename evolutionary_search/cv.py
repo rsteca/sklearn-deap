@@ -10,7 +10,7 @@ from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
 from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param_grid
-from sklearn.metrics.scorer import check_scoring
+from sklearn.metrics import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
 def enum(**enums):
