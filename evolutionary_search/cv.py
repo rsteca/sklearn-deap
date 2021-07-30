@@ -13,8 +13,9 @@ from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param
 from sklearn.metrics import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
+
 def enum(**enums):
-    return type('Enum', (), enums)
+    return type("Enum", (), enums)
 
 
 param_types = enum(Categorical=1, Numerical=2)
@@ -52,11 +53,13 @@ def _mutIndividual(individual, up, indpb, gene_type=None):
     for i, up, rn in zip(range(len(up)), up, [random.random() for _ in range(len(up))]):
         if rn < indpb:
             individual[i] = random.randint(0, up)
-    return individual,
+    return (individual,)
 
 
 def _cxIndividual(ind1, ind2, indpb, gene_type):
-    for i, gt, rn in zip(range(len(ind1)), gene_type, [random.random() for _ in range(len(ind1))]):
+    for i, gt, rn in zip(
+        range(len(ind1)), gene_type, [random.random() for _ in range(len(ind1))]
+    ):
         if rn > indpb:
             continue
         if gt is param_types.Categorical:
@@ -74,19 +77,32 @@ def _cxIndividual(ind1, ind2, indpb, gene_type):
 
 
 def _individual_to_params(individual, name_values):
-    return dict((name, values[gene]) for gene, (name, values) in zip(individual, name_values))
+    return dict(
+        (name, values[gene]) for gene, (name, values) in zip(individual, name_values)
+    )
 
 
-def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
-                  verbose=0, error_score='raise', score_cache={}):
-    """ Developer Note:
-        --------------------
-        score_cache was purposefully moved to parameters, and given a dict reference.
-        It will be modified in-place by _evalFunction based on it's reference.
-        This is to allow for a managed, paralell memoization dict,
-        and also for different memoization per instance of EvolutionaryAlgorithmSearchCV.
-        Remember that dicts created inside function definitions are presistent between calls,
-        So unless it is replaced this function will be memoized each call automatically. """
+def _evalFunction(
+    individual,
+    name_values,
+    X,
+    y,
+    scorer,
+    cv,
+    iid,
+    fit_params,
+    verbose=0,
+    error_score="raise",
+    score_cache={},
+):
+    """Developer Note:
+    --------------------
+    score_cache was purposefully moved to parameters, and given a dict reference.
+    It will be modified in-place by _evalFunction based on it's reference.
+    This is to allow for a managed, paralell memoization dict,
+    and also for different memoization per instance of EvolutionaryAlgorithmSearchCV.
+    Remember that dicts created inside function definitions are presistent between calls,
+    So unless it is replaced this function will be memoized each call automatically."""
 
     parameters = _individual_to_params(individual, name_values)
     score = 0
@@ -97,11 +113,21 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
         score = score_cache[paramkey]
     else:
         for train, test in cv.split(X, y):
-            assert len(train) > 0 and len(test) > 0, "Training and/or testing not long enough for evaluation."
-            _score = _fit_and_score(estimator=individual.est, X=X, y=y, scorer=scorer,
-                                    train=train, test=test, verbose=verbose,
-                                    parameters=parameters, fit_params=fit_params,
-                                    error_score=error_score)['test_scores']
+            assert (
+                len(train) > 0 and len(test) > 0
+            ), "Training and/or testing not long enough for evaluation."
+            _score = _fit_and_score(
+                estimator=individual.est,
+                X=X,
+                y=y,
+                scorer=scorer,
+                train=train,
+                test=test,
+                verbose=verbose,
+                parameters=parameters,
+                fit_params=fit_params,
+                error_score=error_score,
+            )["test_scores"]
 
             if iid:
                 score += _score * len(test)
@@ -110,7 +136,9 @@ def _evalFunction(individual, name_values, X, y, scorer, cv, iid, fit_params,
                 score += _score
                 n_test += 1
 
-        assert n_test > 0, "No fitting was accomplished, check data and cross validation method."
+        assert (
+            n_test > 0
+        ), "No fitting was accomplished, check data and cross validation method."
         score /= float(n_test)
         score_cache[paramkey] = score
 
@@ -278,20 +306,37 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
     def _run_search(self, evaluate_candidates):
         """
-            scikit-learn new version introduce a new abstract function hence we have to implement an anonymous function
+        scikit-learn new version introduce a new abstract function hence we have to implement an anonymous function
         """
         pass
 
-    def __init__(self, estimator, params, scoring=None, cv=4,
-                 refit=True, verbose=False, population_size=50,
-                 gene_mutation_prob=0.1, gene_crossover_prob=0.5,
-                 tournament_size=3, generations_number=10, gene_type=None,
-                 n_jobs=1, iid=True, error_score='raise',
-                 fit_params={}):
+    def __init__(
+        self,
+        estimator,
+        params,
+        scoring=None,
+        cv=4,
+        refit=True,
+        verbose=False,
+        population_size=50,
+        gene_mutation_prob=0.1,
+        gene_crossover_prob=0.5,
+        tournament_size=3,
+        generations_number=10,
+        gene_type=None,
+        n_jobs=1,
+        iid=True,
+        error_score="raise",
+        fit_params={},
+    ):
         super(EvolutionaryAlgorithmSearchCV, self).__init__(
-            estimator=estimator, scoring=scoring,
-            refit=refit, cv=cv, verbose=verbose,
-            error_score=error_score)
+            estimator=estimator,
+            scoring=scoring,
+            refit=refit,
+            cv=cv,
+            verbose=verbose,
+            error_score=error_score,
+        )
         self.iid = iid
         self.params = params
         self.population_size = population_size
@@ -309,7 +354,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.n_jobs = n_jobs
         self.fit_params = fit_params
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax)
+        creator.create(
+            "Individual", list, est=clone(self.estimator), fitness=creator.FitnessMax
+        )
 
     @property
     def possible_params(self):
@@ -321,37 +368,47 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self._cv_results is None:  # This is to cache the answer until updated
             # Populate output and return
             # If not already fit, returns an empty dictionary
-            possible_params = self.possible_params  # Pre-load property for use in this function
+            possible_params = (
+                self.possible_params
+            )  # Pre-load property for use in this function
             out = defaultdict(list)
             for p, gen in enumerate(self.all_history_):
                 # Get individuals and indexes, their list of scores,
                 # and additionally the name_values for this set of parameters
 
-                idxs, individuals, each_scores = zip(*[(idx, indiv, np.mean(indiv.fitness.values))
-                                                for idx, indiv in list(gen.genealogy_history.items())
-                                                if indiv.fitness.valid and not np.all(np.isnan(indiv.fitness.values))])
+                idxs, individuals, each_scores = zip(
+                    *[
+                        (idx, indiv, np.mean(indiv.fitness.values))
+                        for idx, indiv in list(gen.genealogy_history.items())
+                        if indiv.fitness.valid
+                        and not np.all(np.isnan(indiv.fitness.values))
+                    ]
+                )
 
                 name_values, _, _ = _get_param_types_maxint(possible_params[p])
 
                 # Add to output
-                out['param_index'] += [p] * len(idxs)
-                out['index'] += idxs
-                out['params'] += [_individual_to_params(indiv, name_values)
-                                for indiv in individuals]
-                out['mean_test_score'] += [np.nanmean(scores) for scores in each_scores]
-                out['std_test_score'] += [np.nanstd(scores) for scores in each_scores]
-                out['min_test_score'] += [np.nanmin(scores) for scores in each_scores]
-                out['max_test_score'] += [np.nanmax(scores) for scores in each_scores]
-                out['nan_test_score?'] += [np.any(np.isnan(scores)) for scores in each_scores]
+                out["param_index"] += [p] * len(idxs)
+                out["index"] += idxs
+                out["params"] += [
+                    _individual_to_params(indiv, name_values) for indiv in individuals
+                ]
+                out["mean_test_score"] += [np.nanmean(scores) for scores in each_scores]
+                out["std_test_score"] += [np.nanstd(scores) for scores in each_scores]
+                out["min_test_score"] += [np.nanmin(scores) for scores in each_scores]
+                out["max_test_score"] += [np.nanmax(scores) for scores in each_scores]
+                out["nan_test_score?"] += [
+                    np.any(np.isnan(scores)) for scores in each_scores
+                ]
             self._cv_results = out
 
         return self._cv_results
 
     @property
     def best_index_(self):
-        """ Returns the absolute index (not the 'index' column) with the best max_score
-            from cv_results_. """
-        return np.argmax(self.cv_results_['max_test_score'])
+        """Returns the absolute index (not the 'index' column) with the best max_score
+        from cv_results_."""
+        return np.argmax(self.cv_results_["max_test_score"])
 
     def fit(self, X, y=None):
         self.best_estimator_ = None
@@ -376,9 +433,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
 
         if y is not None:
             if len(y) != n_samples:
-                raise ValueError('Target variable (y) has a different number '
-                                 'of samples (%i) than data (X: %i samples)'
-                                 % (len(y), n_samples))
+                raise ValueError(
+                    "Target variable (y) has a different number "
+                    "of samples (%i) than data (X: %i samples)" % (len(y), n_samples)
+                )
         cv = check_cv(self.cv, y=y, classifier=is_classifier(self.estimator))
 
         toolbox = base.Toolbox()
@@ -390,7 +448,9 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if self.verbose:
             print("Types %s and maxint %s detected" % (self.gene_type, maxints))
 
-        toolbox.register("individual", _initIndividual, creator.Individual, maxints=maxints)
+        toolbox.register(
+            "individual", _initIndividual, creator.Individual, maxints=maxints
+        )
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
         # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
@@ -401,12 +461,17 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         if isinstance(self.n_jobs, int):
             if self.n_jobs > 1 or self.n_jobs < 0:
                 from multiprocessing import Pool  # Only imports if needed
-                if os.name == 'nt':               # Checks if we are on Windows
-                    warnings.warn(("Windows requires Pools to be declared from within "
-                                   "an \'if __name__==\"__main__\":\' structure. In this "
-                                   "case, n_jobs will accept map functions as well to "
-                                   "facilitate custom parallelism. Please check to see "
-                                   "that all code is working as expected."))
+
+                if os.name == "nt":  # Checks if we are on Windows
+                    warnings.warn(
+                        (
+                            "Windows requires Pools to be declared from within "
+                            "an 'if __name__==\"__main__\":' structure. In this "
+                            "case, n_jobs will accept map functions as well to "
+                            "facilitate custom parallelism. Please check to see "
+                            "that all code is working as expected."
+                        )
+                    )
                 pool = Pool(self.n_jobs)
                 toolbox.register("map", pool.map)
 
@@ -415,17 +480,37 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
             try:
                 toolbox.register("map", self.n_jobs)
             except Exception:
-                raise TypeError("n_jobs must be either an integer or map function. Received: {}".format(type(self.n_jobs)))
+                raise TypeError(
+                    "n_jobs must be either an integer or map function. Received: {}".format(
+                        type(self.n_jobs)
+                    )
+                )
 
-        toolbox.register("evaluate", _evalFunction,
-                         name_values=name_values, X=X, y=y,
-                         scorer=self.scorer_, cv=cv, iid=self.iid, verbose=self.verbose,
-                         error_score=self.error_score, fit_params=self.fit_params,
-                         score_cache=self.score_cache)
+        toolbox.register(
+            "evaluate",
+            _evalFunction,
+            name_values=name_values,
+            X=X,
+            y=y,
+            scorer=self.scorer_,
+            cv=cv,
+            iid=self.iid,
+            verbose=self.verbose,
+            error_score=self.error_score,
+            fit_params=self.fit_params,
+            score_cache=self.score_cache,
+        )
 
-        toolbox.register("mate", _cxIndividual, indpb=self.gene_crossover_prob, gene_type=self.gene_type)
+        toolbox.register(
+            "mate",
+            _cxIndividual,
+            indpb=self.gene_crossover_prob,
+            gene_type=self.gene_type,
+        )
 
-        toolbox.register("mutate", _mutIndividual, indpb=self.gene_mutation_prob, up=maxints)
+        toolbox.register(
+            "mutate", _mutIndividual, indpb=self.gene_mutation_prob, up=maxints
+        )
         toolbox.register("select", tools.selTournament, tournsize=self.tournament_size)
 
         pop = toolbox.population(n=self.population_size)
@@ -445,11 +530,22 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         hist.update(pop)
 
         if self.verbose:
-            print('--- Evolve in {0} possible combinations ---'.format(np.prod(np.array(maxints) + 1)))
+            print(
+                "--- Evolve in {0} possible combinations ---".format(
+                    np.prod(np.array(maxints) + 1)
+                )
+            )
 
-        pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
-                                           ngen=self.generations_number, stats=stats,
-                                           halloffame=hof, verbose=self.verbose)
+        pop, logbook = algorithms.eaSimple(
+            pop,
+            toolbox,
+            cxpb=0.5,
+            mutpb=0.2,
+            ngen=self.generations_number,
+            stats=stats,
+            halloffame=hof,
+            verbose=self.verbose,
+        )
 
         # Save History
         self.all_history_.append(hist)
@@ -457,8 +553,10 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         current_best_score_ = hof[0].fitness.values[0]
         current_best_params_ = _individual_to_params(hof[0], name_values)
         if self.verbose:
-            print("Best individual is: %s\nwith fitness: %s" % (
-                current_best_params_, current_best_score_))
+            print(
+                "Best individual is: %s\nwith fitness: %s"
+                % (current_best_params_, current_best_score_)
+            )
 
         if current_best_score_ > self.best_mem_score_:
             self.best_mem_score_ = current_best_score_
