@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from deap import base, creator, tools, algorithms
-from sklearn.model_selection._search import _check_param_grid
-from .cv import (
+from sklearn.model_selection._search import ParameterGrid
+from evolutionary_search.cv import (
     _get_param_types_maxint,
     _initIndividual,
     _cxIndividual,
@@ -79,7 +78,7 @@ def maximize(
 
     toolbox = base.Toolbox()
 
-    _check_param_grid(parameter_dict)
+    _ = ParameterGrid(parameter_dict)
     if isinstance(n_jobs, int):
         # If n_jobs is an int, greater than 1 or less than 0 (indicating to use as
         # many jobs as possible) then we are going to create a default pool.

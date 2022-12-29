@@ -9,7 +9,8 @@ from deap import base, creator, tools, algorithms
 from collections import defaultdict
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
-from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param_grid
+from sklearn.model_selection._search import BaseSearchCV, check_cv
+from sklearn.model_selection._search import ParameterGrid
 from sklearn.metrics import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
@@ -415,7 +416,7 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         self.best_mem_score_ = float("-inf")
         self.best_mem_params_ = None
         for possible_params in self.possible_params:
-            _check_param_grid(possible_params)
+            _ = ParameterGrid(possible_params)
             self._fit(X, y, possible_params)
         if self.refit:
             self.best_estimator_ = clone(self.estimator)
@@ -440,7 +441,6 @@ class EvolutionaryAlgorithmSearchCV(BaseSearchCV):
         cv = check_cv(self.cv, y=y, classifier=is_classifier(self.estimator))
 
         toolbox = base.Toolbox()
-
         name_values, gene_type, maxints = _get_param_types_maxint(parameter_dict)
         if self.gene_type is None:
             self.gene_type = gene_type
