@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from deap import base, creator, tools, algorithms
-from sklearn.model_selection._search import _check_param_grid
 from .cv import (
     _get_param_types_maxint,
     _initIndividual,
     _cxIndividual,
     _mutIndividual,
     _individual_to_params,
+    _check_param_grid
 )
 import warnings
 import os

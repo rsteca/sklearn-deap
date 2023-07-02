@@ -7,9 +7,10 @@ import numpy as np
 import random
 from deap import base, creator, tools, algorithms
 from collections import defaultdict
+from collections.abc import Sequence
 from sklearn.base import clone, is_classifier
 from sklearn.model_selection._validation import _fit_and_score
-from sklearn.model_selection._search import BaseSearchCV, check_cv, _check_param_grid
+from sklearn.model_selection._search import BaseSearchCV, check_cv
 from sklearn.metrics import check_scoring
 from sklearn.utils.validation import _num_samples, indexable
 
@@ -19,6 +20,35 @@ def enum(**enums):
 
 
 param_types = enum(Categorical=1, Numerical=2)
+
+
+def _check_param_grid(param_grid):
+    """
+    Validates the parameter grid. 
+    This function used to be available on scikit-learn (versions 1.0 and below) 
+    within the model_selection._search module 
+    """
+    if hasattr(param_grid, "items"):
+        param_grid = [param_grid]
+
+    for p in param_grid:
+        for name, v in p.items():
+            if isinstance(v, np.ndarray) and v.ndim > 1:
+                raise ValueError("Parameter array should be one-dimensional.")
+
+            if isinstance(v, str) or not isinstance(v, (np.ndarray, Sequence)):
+                raise ValueError(
+                    "Parameter grid for parameter ({0}) needs to"
+                    " be a list or numpy array, but got ({1})."
+                    " Single values need to be wrapped in a list"
+                    " with one element.".format(name, type(v))
+                )
+
+            if len(v) == 0:
+                raise ValueError(
+                    "Parameter values for parameter ({0}) need "
+                    "to be a non-empty sequence.".format(name)
+                )
 
 
 def _get_param_types_maxint(params):
